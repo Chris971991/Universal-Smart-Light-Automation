@@ -130,6 +130,9 @@ blueprint:
     
     Both features use customizable sunrise/sunset times with offsets to define "daytime".
     
+    **Note**: The automation checks device trackers and bed sensors every minute to ensure
+    responsive behavior while maintaining efficiency.
+    
     ## Guest Mode
     
     When enabled, guest mode modifies the automation behavior to be more guest-friendly:
@@ -450,9 +453,9 @@ blueprint:
       name: Vacancy Timeout Multiplier
       description: >
         Multiplier applied to the sensor off latency to determine true vacancy.
-        For example, with a 60s latency and 10× multiplier = 10 minute vacancy timeout.
+        For example, with a 60s latency and 5× multiplier = 5 minute vacancy timeout.
         Higher values prevent false offs but delay automatic actions.
-      default: 10
+      default: 5
       selector:
         number:
           min: 1
@@ -1143,23 +1146,19 @@ variables:
   is_pir_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == presence_pir_sensor }}"
   is_mmwave_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == mmwave_sensor }}"
   is_illuminance_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == illuminance_sensor }}"
-  is_bed_trigger: >-
-    {% if has_bed_sensor %}
-      {{ trigger.platform == 'state' and trigger.entity_id == bed_occupied_helper }}
-    {% else %}
-      false
-    {% endif %}
   is_periodic_trigger: "{{ trigger.platform == 'time_pattern' }}"
   is_sun_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == 'sun.sun' }}"
-  is_tracker_trigger: >-
-    {% if has_presence_trackers %}
-      {{ trigger.platform == 'state' and trigger.entity_id in presence_trackers }}
-    {% else %}
-      false
-    {% endif %}
   
   user_turned_on: "{{ is_primary_trigger and trigger.to_state.state == 'on' and trigger.from_state.state == 'off' }}"
   user_turned_off: "{{ is_primary_trigger and trigger.to_state.state == 'off' and trigger.from_state.state == 'on' }}"
+  
+  # Track bed changes for periodic checks
+  bed_just_occupied: >-
+    {% if has_bed_sensor and bed_occupied %}
+      {{ bed_occupied_seconds_ago < 60 }}
+    {% else %}
+      false
+    {% endif %}
   
   # MODIFIED v3.8: Automation intent with away mode and no daytime lights
   auto_would_turn_on: >-
@@ -1169,11 +1168,13 @@ variables:
       {{ is_dark and someone_present and not bed_occupied }}
     {% endif %}
   
-  # Turn OFF is always allowed (energy saving)
+  # Turn OFF is always allowed (energy saving) - check for bed just occupied
   auto_would_turn_off: >-
     {% if not someone_present %}
       true
     {% elif turn_off_when_bed_occupied and bed_occupied and lights_on %}
+      true
+    {% elif turn_off_when_bed_occupied and bed_just_occupied and lights_on %}
       true
     {% else %}
       false
@@ -1362,22 +1363,10 @@ trigger:
   - platform: state
     entity_id: sun.sun
     id: sun_change
-  
-  # NEW v3.8: Device tracker changes
-  - platform: state
-    entity_id: !input presence_trackers
-    id: tracker_change
-    to: ['home', 'not_home']
-  
-  # Bed occupancy trigger (if configured)
-  - platform: state
-    entity_id: !input bed_occupied_helper
-    id: bed_change
-    to: 'on'
     
-  # Periodic checks
+  # Periodic checks (handles optional entity monitoring)
   - platform: time_pattern
-    minutes: "/5"
+    minutes: "/1"
     id: periodic_check
 
 # Conditions
@@ -1406,24 +1395,6 @@ condition:
       {{ trigger.id == 'periodic_check' or 
          (trigger.from_state is defined and trigger.to_state is defined and
           trigger.from_state.state != trigger.to_state.state) }}
-  
-  # Skip bed trigger if no bed sensor configured
-  - condition: template
-    value_template: >-
-      {% if trigger.id == 'bed_change' %}
-        {{ has_bed_sensor }}
-      {% else %}
-        true
-      {% endif %}
-  
-  # Skip tracker trigger if no trackers configured
-  - condition: template
-    value_template: >-
-      {% if trigger.id == 'tracker_change' %}
-        {{ has_presence_trackers }}
-      {% else %}
-        true
-      {% endif %}
 
 # Actions
 action:
@@ -2089,7 +2060,8 @@ action:
                     value_template: >-
                       {% set vacant_trigger = not someone_present %}
                       {% set bed_trigger = turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}
-                      {{ (vacant_trigger or bed_trigger) and lights_on }}
+                      {% set bed_just_trigger = turn_off_when_bed_occupied and bed_just_occupied and not (enable_guest_mode and guest_ignore_bed) %}
+                      {{ (vacant_trigger or bed_trigger or bed_just_trigger) and lights_on }}
                   
                   # Turn off lights based on control mode
                   - choose:
@@ -2178,7 +2150,7 @@ action:
     then:
       - service: system_log.write
         data:
-          level: warning
+          level: Warning
           message: >-
             [{{ room_name | upper }}] DECISION SUMMARY
             ├─ Room Presence: {{ 'YES' if someone_present else 'NO' }}
