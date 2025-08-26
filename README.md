@@ -19,7 +19,6 @@ A sophisticated, universal lighting automation blueprint for Home Assistant that
 - **🛏️ Bedroom Support** - Optional bed sensor integration (v3.8+)
 
 ### Advanced Features (v3.8+)
-- **🏠 Away Mode** - Prevents daytime lighting when nobody's home
 - **☀️ Daytime Control** - Option to disable daytime lighting during daylight hours
 - **👥 Guest Mode** - Special behavior for visitors
 - **📊 Performance Tracking** - Monitors automation efficiency
