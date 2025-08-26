@@ -167,32 +167,28 @@ Choose your setup:
 
 ### Advanced Configuration
 
-#### Away Mode (v3.8+)
-Prevents lights from turning on during daytime when nobody's home.
+#### Daytime Control Mode (v3.8.2)
+Prevents lights from turning on during daytime based on m,ultiple optios.
 
 **Setup**:
-1. Enable "Away Mode"
-2. Add family phones/device trackers
+1. Enable "Daytime Control Mode"
+2. Choose which control mode to use:
+- Always Allow - Normal operation, lights turn on automatically when dark and occupied
+- Block When Away - Energy saving mode - prevents auto-on during daytime when nobody's home (Requires phone/device trackers to be configured below)
+- Always Block - Maximum energy saving - never auto-on during daytime regardless of presence (Perfect for rooms with good natural light)
+2. Add family phones/device trackers (A must if using option "Block When Away - Save energy when gone")
 3. Configure sunrise/sunset offsets
 
 **How it works**:
-- Checks if ANY tracked device is home
-- Only prevents daytime auto-on
+- Always Allow: The lights will always be automated no matter what time of the day it is or Sunrise/Sunset.
+- Block When Away: Checks if ANY tracked device is home. If there are no devices home, the lights will not turn on during the daytime based on Sunrise/Sunset.
+- Always Block: The lights will never automate turning on during the daytime based on your Sunrise/Sunset settings.
+- THe main fucntion is to revents the lights being turned on during the daytime (e.g., Pets are walking through the house in a room with closed blinds, making the automation turn the lights on and wasting power)
 - Nighttime security lighting still works
 - Manual control always works
-
-#### No Daytime Lights Mode (v3.8+)
-Completely disables automatic turn-on during daylight hours.
-
-**Use cases**:
-- Rooms with excellent natural light
-- Energy conservation
-- Personal preference
-
-**Configuration**:
-- Enable "Disable ALL Automatic Turn-ON During Daytime"
-- Set sunrise offset (e.g., +30 minutes)
-- Set sunset offset (e.g., -30 minutes)
+- If lights are turned on manually during the day, it will still turn them off based on either vacancy detected or the manual mode expires
+- Daytime control mode will come into effect based on your local Sunrise/Sunset.
+- Modify the Sunrise Offset and Sunset Offset if you would like to modify when the lights turn into automatic mode or Daytime Control Mode (e.g., +-30 minutes)
 
 #### Guest Mode
 Modified behavior for when you have visitors:
