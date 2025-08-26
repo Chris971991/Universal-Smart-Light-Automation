@@ -2,7 +2,7 @@
 ### Enhanced Version 3.8.2 - The Only Light Automation Blueprint You'll Ever Need
 
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Blueprint-blue)](https://www.home-assistant.io/docs/automation/using_blueprints/)
-[![Version](https://img.shields.io/badge/Version-3.8.1-green)]()
+[![Version](https://img.shields.io/badge/Version-3.8.2-green)]()
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)]()
 
 A sophisticated, universal lighting automation blueprint for Home Assistant that intelligently manages your lights based on presence, ambient light levels, and manual preferences. Works perfectly for **ANY** room type - bedrooms, offices, living rooms, kitchens, bathrooms, and more.
