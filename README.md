@@ -182,7 +182,7 @@ Prevents lights from turning on during daytime based on m,ultiple optios.
 - Always Allow: The lights will always be automated no matter what time of the day it is or Sunrise/Sunset.
 - Block When Away: Checks if ANY tracked device is home. If there are no devices home, the lights will not turn on during the daytime based on Sunrise/Sunset.
 - Always Block: The lights will never automate turning on during the daytime based on your Sunrise/Sunset settings.
-- THe main fucntion is to revents the lights being turned on during the daytime (e.g., Pets are walking through the house in a room with closed blinds, making the automation turn the lights on and wasting power)
+- The main fucntion is to revents the lights being turned on during the daytime (e.g., Pets are walking through the house in a room with closed blinds, making the automation turn the lights on and wasting power)
 - Nighttime security lighting still works
 - Manual control always works
 - If lights are turned on manually during the day, it will still turn them off based on either vacancy detected or the manual mode expires
