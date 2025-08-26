@@ -428,9 +428,9 @@ MIT License - See LICENSE file for details
 
 ## 📧 Support
 
-- **Issues**: [GitHub Issues](https://github.com/YourUsername/universal-smart-light-automation/issues)
+- **Issues**: [GitHub Issues](https://github.com/Chris971991/universal-smart-light-automation/issues)
 - **Discussions**: [Home Assistant Community](https://community.home-assistant.io/)
-- **Documentation**: [Wiki](https://github.com/YourUsername/universal-smart-light-automation/wiki)
+- **Documentation**: [Wiki](https://github.com/Chris971991/universal-smart-light-automation/wiki)
 
 ---
 
