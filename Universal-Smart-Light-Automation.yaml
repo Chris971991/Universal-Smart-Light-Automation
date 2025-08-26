@@ -30,18 +30,6 @@ blueprint:
     
     • **Phone-Based Presence** - Integrate family phones for whole-home presence detection
     
-    ## ENHANCED IN v3.7: Reliability & Intelligence
-    
-    • **Illuminance Spike Protection** - Filters out sudden bright spikes (camera flash, lightning)
-    
-    • **Enhanced Threshold Validation** - Warns about problematic threshold configurations
-    
-    • **State Recovery System** - Gracefully handles Home Assistant restarts
-    
-    • **Intelligent Debug Logging** - Provides threshold recommendations
-    
-    • **Performance Tracking** - Monitors automation efficiency
-    
     For full version history and documentation, visit:
     https://github.com/Chris971991/Universal-Smart-Light-Automation
 
