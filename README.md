@@ -1,5 +1,5 @@
 # Universal Smart Presence Lighting Control
-### Enhanced Version 3.8.1 - The Only Light Automation Blueprint You'll Ever Need
+### Enhanced Version 3.8.2 - The Only Light Automation Blueprint You'll Ever Need
 
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Blueprint-blue)](https://www.home-assistant.io/docs/automation/using_blueprints/)
 [![Version](https://img.shields.io/badge/Version-3.8.1-green)]()
