@@ -742,44 +742,38 @@ variables:
   has_presence_trackers: "{{ presence_trackers | length > 0 }}"
   
   # NEW v3.8: Calculate daytime based on sun with offsets
-  sun_state: "{{ states('sun.sun') }}"
+  # Use a simple and reliable approach based on sun elevation
   sun_elevation: "{{ state_attr('sun.sun', 'elevation') | float(0) }}"
-  sunrise_time: >-
-    {% set sunrise = state_attr('sun.sun', 'next_rising') %}
-    {% if sunrise %}
-      {{ as_timestamp(sunrise) }}
-    {% else %}
-      {{ now().timestamp() }}
-    {% endif %}
-  sunset_time: >-
-    {% set sunset = state_attr('sun.sun', 'next_setting') %}
-    {% if sunset %}
-      {{ as_timestamp(sunset) }}
-    {% else %}
-      {{ now().timestamp() }}
-    {% endif %}
   
-  # Calculate adjusted daytime boundaries
-  daytime_start: "{{ sunrise_time + (sunrise_offset_minutes * 60) }}"
-  daytime_end: "{{ sunset_time + (sunset_offset_minutes * 60) }}"
-  current_timestamp: "{{ now().timestamp() }}"
-  
-  # Determine if it's currently daytime
+  # Calculate if it's daytime based on sun elevation and offsets
+  # Sunrise offset: positive = wait after sunrise, negative = before sunrise
+  # Sunset offset: negative = end before sunset, positive = after sunset
   is_daytime: >-
-    {% set now_ts = now().timestamp() %}
-    {% set today_sunrise = as_timestamp(today_at(state_attr('sun.sun', 'next_rising'))) + (sunrise_offset_minutes * 60) %}
-    {% set today_sunset = as_timestamp(today_at(state_attr('sun.sun', 'next_setting'))) + (sunset_offset_minutes * 60) %}
-    {% set yesterday_sunset = today_sunset - 86400 %}
-    {% set tomorrow_sunrise = today_sunrise + 86400 %}
+    {% set elevation = state_attr('sun.sun', 'elevation') | float(0) %}
+    {% set sunrise_threshold = (sunrise_offset_minutes | float(30) / 60) * 6 %}
+    {% set sunset_threshold = (sunset_offset_minutes | float(-30) / 60) * 6 %}
     
-    {% if now_ts >= today_sunrise and now_ts < today_sunset %}
-      true
-    {% elif now_ts < today_sunrise and now_ts >= yesterday_sunset %}
-      false
-    {% elif now_ts >= today_sunset and now_ts < tomorrow_sunrise %}
-      false
+    {% if elevation > 0 %}
+      {# Sun is above horizon #}
+      {% if sunrise_offset_minutes > 0 %}
+        {# Need to wait after sunrise - check if sun is high enough #}
+        {{ elevation >= sunrise_threshold }}
+      {% else %}
+        {# Daytime starts before sunrise #}
+        true
+      {% endif %}
+    {% elif elevation > sunset_threshold %}
+      {# Sun is below horizon but not too far - might still be daytime with offset #}
+      {% if sunset_offset_minutes >= 0 %}
+        {# Daytime extends after sunset #}
+        true
+      {% else %}
+        {# Daytime ends before sunset - check threshold #}
+        {{ elevation > abs(sunset_threshold) }}
+      {% endif %}
     {% else %}
-      {{ sun_state == 'above_horizon' }}
+      {# Sun is well below horizon - definitely night #}
+      false
     {% endif %}
   
   # NEW v3.8: Check if anyone is home (via device trackers)
@@ -1035,42 +1029,55 @@ variables:
   
   primary_changed_time: >-
     {% if primary_control_entity != 'none' and states[primary_control_entity] %}
-      {% set changed = as_timestamp(states[primary_control_entity].last_changed) %}
-      {{ changed if changed else current_time }}
+      {% if states[primary_control_entity].last_changed %}
+        {{ as_timestamp(states[primary_control_entity].last_changed, current_time) }}
+      {% else %}
+        {{ current_time }}
+      {% endif %}
     {% else %}
       {{ current_time }}
     {% endif %}
   
   override_changed_time: >-
     {% if states[manual_override_helper] %}
-      {% set changed = as_timestamp(states[manual_override_helper].last_changed) %}
-      {{ changed if changed else current_time }}
+      {% if states[manual_override_helper].last_changed %}
+        {{ as_timestamp(states[manual_override_helper].last_changed, current_time) }}
+      {% else %}
+        {{ current_time }}
+      {% endif %}
     {% else %}
       {{ current_time }}
     {% endif %}
   
   occupancy_changed_time: >-
     {% if states[occupancy_state_helper] %}
-      {% set changed = as_timestamp(states[occupancy_state_helper].last_changed) %}
-      {{ changed if changed else current_time }}
+      {% if states[occupancy_state_helper].last_changed %}
+        {{ as_timestamp(states[occupancy_state_helper].last_changed, current_time) }}
+      {% else %}
+        {{ current_time }}
+      {% endif %}
     {% else %}
       {{ current_time }}
     {% endif %}
   
   bed_changed_time: >-
     {% if has_bed_sensor and states[bed_occupied_helper] %}
-      {% set changed = as_timestamp(states[bed_occupied_helper].last_changed) %}
-      {{ changed if changed else current_time }}
+      {% if states[bed_occupied_helper].last_changed %}
+        {{ as_timestamp(states[bed_occupied_helper].last_changed, current_time) }}
+      {% else %}
+        {{ current_time }}
+      {% endif %}
     {% else %}
       {{ current_time }}
     {% endif %}
   
   last_automation_time: >-
-    {% if states[last_automation_action_helper] %}
+    {% if states[last_automation_action_helper] and states[last_automation_action_helper].state %}
       {% set last_action = states(last_automation_action_helper) %}
       {% if last_action not in ['unknown', 'unavailable', '', None] %}
-        {% set action_time = as_timestamp(last_action) %}
-        {{ action_time if action_time else 0 }}
+        {# The datetime helper stores as ISO format string #}
+        {% set action_time = as_timestamp(last_action, 0) %}
+        {{ action_time }}
       {% else %}
         0
       {% endif %}
@@ -1093,9 +1100,9 @@ variables:
   # Check if automation_active is stale (stuck on)
   automation_active_stale: >-
     {% if automation_active %}
-      {% if states[automation_active_helper] %}
-        {% set active_time = as_timestamp(states[automation_active_helper].last_changed) %}
-        {% if active_time %}
+      {% if states[automation_active_helper] and states[automation_active_helper].last_changed %}
+        {% set active_time = as_timestamp(states[automation_active_helper].last_changed, 0) %}
+        {% if active_time > 0 %}
           {{ (current_time - active_time) > 3 }}
         {% else %}
           true
@@ -1407,14 +1414,14 @@ action:
       - conditions:
           - condition: template
             value_template: >-
-              {% set helpers_stale = [] %}
+              {% set helpers_stale = false %}
               {% if states[automation_active_helper] and states[automation_active_helper].last_changed %}
-                {% set age = (current_time - as_timestamp(states[automation_active_helper].last_changed)) / 3600 %}
-                {% if age > 24 %}
-                  {% set helpers_stale = helpers_stale + ['automation_active'] %}
+                {% set age_hours = (current_time - as_timestamp(states[automation_active_helper].last_changed, current_time)) / 3600 %}
+                {% if age_hours > 24 %}
+                  {% set helpers_stale = true %}
                 {% endif %}
               {% endif %}
-              {{ helpers_stale | length > 0 }}
+              {{ helpers_stale }}
         sequence:
           - service: input_boolean.turn_off
             target:
@@ -1642,9 +1649,13 @@ action:
   - condition: template
     value_template: >-
       {% if not is_primary_trigger and automation_active and not automation_active_stale %}
-        {% set active_time = as_timestamp(states[automation_active_helper].last_changed) if states[automation_active_helper] else 0 %}
-        {% if active_time %}
-          {{ (current_time - active_time) > 0.5 }}
+        {% if states[automation_active_helper] and states[automation_active_helper].last_changed %}
+          {% set active_time = as_timestamp(states[automation_active_helper].last_changed, 0) %}
+          {% if active_time > 0 %}
+            {{ (current_time - active_time) > 0.5 }}
+          {% else %}
+            true
+          {% endif %}
         {% else %}
           true
         {% endif %}
@@ -1834,9 +1845,9 @@ action:
                     value_template: >-
                       {% set auto_on_recent = false %}
                       {% if is_state(light_auto_on_helper, 'on') and user_turned_on %}
-                        {% if states[light_auto_on_helper] %}
-                          {% set auto_on_changed = as_timestamp(states[light_auto_on_helper].last_changed) %}
-                          {% if auto_on_changed %}
+                        {% if states[light_auto_on_helper] and states[light_auto_on_helper].last_changed %}
+                          {% set auto_on_changed = as_timestamp(states[light_auto_on_helper].last_changed, 0) %}
+                          {% if auto_on_changed > 0 %}
                             {% set age = current_time - auto_on_changed %}
                             {% set auto_on_recent = age < 5 %}
                           {% endif %}
