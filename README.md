@@ -20,15 +20,14 @@ A sophisticated, universal lighting automation blueprint for Home Assistant that
 
 ### Advanced Features (v3.8+)
 - **🏠 Away Mode** - Prevents daytime lighting when nobody's home
-- **☀️ Daytime Control** - Option to disable auto-on during daylight hours
+- **☀️ Daytime Control** - Option to disable daytime lighting during daylight hours
 - **👥 Guest Mode** - Special behavior for visitors
 - **📊 Performance Tracking** - Monitors automation efficiency
 - **🔍 Debug Logging** - Detailed decision tree logging
 - **🌡️ Illuminance Averaging** - Filters out lighting spikes/drops
 
-### Latest Updates (v3.8.1)
-- **Fixed** - Manual override boolean logic for proper override clearing
-- **Fixed** - Override now properly clears when manual action matches automation intent
+### Latest Updates (v3.8.2)
+- **Enhanced** - Combined "Enable Away Mode" + "Disable ALL Automatic Turn-On During Daytime" features into one for redundancy (Daytime Control Mode)
 
 ## 📋 Table of Contents
 - [Requirements](#-requirements)
@@ -383,6 +382,9 @@ A: Yes, disable the automation entity or use Guest Mode for modified behavior.
 A: Ensure all helper entity IDs are lowercase. "Office" room = "office" in entity IDs.
 
 ## 📝 Version History
+
+### V3.8.2 (2025-08-26)
+- **Update** - Combined "Enable Away Mode" + "Disable ALL Automatic Turn-On During Daytime" features into one for redundancy (Daytime Control Mode)
 
 ### v3.8.1 (2025-08-26)
 - **Fixed**: Boolean logic in manual override system

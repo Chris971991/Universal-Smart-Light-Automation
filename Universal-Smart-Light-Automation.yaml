@@ -1,7 +1,7 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - Enhanced v3.8.1
+  name: Universal Smart Presence Lighting Control - Enhanced v3.8.2
   description: >
-    # Universal Smart Presence Lighting Control - Enhanced Version 3.8.1
+    # Universal Smart Presence Lighting Control - Enhanced Version 3.8.2
     
     Intelligently manages your lighting based on room occupancy, light levels, and manual controls.
     Works perfectly for ANY room - bedrooms, offices, living rooms, kitchens, bathrooms, etc.
@@ -14,15 +14,19 @@ blueprint:
     • **Offices** - Productivity-focused lighting
     • **Any Room** - Fully customizable behavior
     
+    ## NEW IN v3.8.2: Simplified Daytime Control
+    
+    • **Unified Daytime Mode** - Single setting replaces redundant Away/No-Daytime options
+    
+    • **Three Clear Choices** - Always Allow, Block When Away, or Always Block
+    
+    • **Smarter Configuration** - Cleaner, more intuitive settings
+    
     ## FIXED IN v3.8.1: Manual Mode Boolean Logic
     
     • **Fixed Manual Override** - Properly clears when user action matches automation intent
     
-    ## NEW IN v3.8: Away Mode & Daytime Control
-    
-    • **Away Mode** - Prevents lights turning on during daytime when nobody's home (via phone tracking)
-    
-    • **No Daytime Auto-ON** - Option to disable ALL automatic turn-on during daylight hours
+    ## ENHANCED IN v3.8: Smart Home Features
     
     • **Smart Energy Saving** - Still turns lights OFF automatically even when auto-ON is disabled
     
@@ -30,8 +34,20 @@ blueprint:
     
     • **Phone-Based Presence** - Integrate family phones for whole-home presence detection
     
+    ## ENHANCED IN v3.7: Reliability & Intelligence
+    
+    • **Illuminance Spike Protection** - Filters out sudden bright spikes (camera flash, lightning)
+    
+    • **Enhanced Threshold Validation** - Warns about problematic threshold configurations
+    
+    • **State Recovery System** - Gracefully handles Home Assistant restarts
+    
+    • **Intelligent Debug Logging** - Provides threshold recommendations
+    
+    • **Performance Tracking** - Monitors automation efficiency
+    
     For full version history and documentation, visit:
-    https://github.com/Chris971991/Universal-Smart-Light-Automation
+    https://github.com/YourUsername/Universal-Smart-Light-Automation
 
     ## Features
 
@@ -41,9 +57,7 @@ blueprint:
     
     • **Smart Overrides** - Respects when you manually control lights
     
-    • **Away Mode** - Prevents daytime lighting when nobody's home
-    
-    • **Daytime Control** - Option to disable automatic lighting during daylight hours
+    • **Daytime Control** - Flexible options for daytime lighting behavior
     
     • **Bright Room Logic** - Clears overrides when turning off lights in well-lit rooms
     
@@ -112,18 +126,18 @@ blueprint:
     
     Replace [room_name] with your actual room name in LOWERCASE (e.g., office, bedroom, living_room)
     
-    ## Away Mode & Daytime Control
+    ## Daytime Control Modes
     
-    **Away Mode**: When enabled and nobody is home (detected via phones), prevents lights
-    from turning on automatically during daytime hours. Perfect for security and energy saving.
+    **Always Allow**: Normal operation - lights turn on automatically when dark and occupied
     
-    **No Daytime Auto-ON**: When enabled, prevents ALL automatic light turn-on during
-    daylight hours, regardless of presence. Lights still turn OFF automatically.
+    **Block When Away**: Energy saving mode - prevents automatic turn-on during daytime when nobody's home
     
-    Both features use customizable sunrise/sunset times with offsets to define "daytime".
+    **Always Block**: Maximum energy saving - never turn on automatically during daytime hours
     
-    **Note**: The automation checks device trackers and bed sensors every minute to ensure
-    responsive behavior while maintaining efficiency.
+    All modes still allow:
+    • Manual control at any time
+    • Automatic turn-OFF for energy saving
+    • Nighttime operation
     
     ## Guest Mode
     
@@ -241,27 +255,34 @@ blueprint:
               value: "lights_only"
             - label: "Smart Switch Only"
               value: "switch_only"
-    enable_away_mode:
-      name: Enable Away Mode (Nobody Home Detection)
+    daytime_control_mode:
+      name: Daytime Lighting Control
       description: >
-        **AWAY MODE** - Prevents lights from turning on automatically during daytime when nobody is home.
+        How should automatic lighting work during daytime hours?
         
-        When enabled, the automation checks if any family member is home (via their phones/device trackers).
-        If nobody is home AND it's daytime, lights won't turn on automatically.
+        **Always Allow** - Normal operation, lights turn on automatically when dark and occupied
         
-        • Lights still turn ON at night for security
-        • Lights still turn OFF automatically to save energy
-        • Manual control always works
-        • Perfect for vacation or work hours
+        **Block When Away** - Energy saving mode - prevents auto-on during daytime when nobody's home
+        (Requires phone/device trackers to be configured below)
         
-        Configure which phones to track in the next option.
-      default: false
+        **Always Block** - Maximum energy saving - never auto-on during daytime regardless of presence
+        (Perfect for rooms with good natural light)
+        
+        Note: Manual control and automatic turn-OFF always work regardless of this setting.
+      default: "always_allow"
       selector:
-        boolean:
+        select:
+          options:
+            - label: "Always Allow - Normal operation"
+              value: "always_allow"
+            - label: "Block When Away - Save energy when gone"
+              value: "block_when_away"
+            - label: "Always Block - No daytime auto-on"
+              value: "always_block"
     presence_trackers:
-      name: Family Phones/Device Trackers (For Away Mode)
+      name: Family Phones/Device Trackers (For "Block When Away" Mode)
       description: >
-        **REQUIRED FOR AWAY MODE** - Select all family member phones or device trackers.
+        **REQUIRED if using "Block When Away" mode** - Select all family member phones or device trackers.
         
         The automation considers someone home if ANY of these devices are home.
         
@@ -272,32 +293,12 @@ blueprint:
         
         You can also use other trackers like car trackers, smart watches, etc.
         
-        Leave empty if not using Away Mode.
+        Leave empty if using "Always Allow" or "Always Block" modes.
       default: []
       selector:
         entity:
           domain: device_tracker
           multiple: true
-    enable_no_daytime_lights:
-      name: Disable ALL Automatic Turn-ON During Daytime
-      description: >
-        **DAYTIME CONTROL** - Prevents ALL automatic light turn-on during daylight hours.
-        
-        When enabled, lights will NEVER turn on automatically during daytime, regardless of:
-        • Room occupancy
-        • Darkness level
-        • Who's home
-        
-        **IMPORTANT**: Lights still turn OFF automatically for energy saving!
-        
-        • Manual control always works
-        • Useful for rooms with good natural light
-        • Nighttime automation still works normally
-        
-        Define "daytime" hours using sunrise/sunset offsets below.
-      default: false
-      selector:
-        boolean:
     sunrise_offset_minutes:
       name: Sunrise Offset (minutes)
       description: >
@@ -307,7 +308,7 @@ blueprint:
         • **Negative values** (-30) = Daytime starts BEFORE sunrise
         • **Recommended**: +30 (daytime starts 30 min after sunrise when it's bright)
         
-        This affects both Away Mode and No Daytime Lights features.
+        This affects "Block When Away" and "Always Block" modes.
       default: 30
       selector:
         number:
@@ -325,7 +326,7 @@ blueprint:
         • **Negative values** (-30) = Daytime ends BEFORE sunset
         • **Recommended**: -30 (daytime ends 30 min before sunset while still light)
         
-        This affects both Away Mode and No Daytime Lights features.
+        This affects "Block When Away" and "Always Block" modes.
       default: -30
       selector:
         number:
@@ -682,7 +683,7 @@ blueprint:
       selector:
         boolean:
 
-# Variables and state management - ENHANCED v3.8.1 with boolean fixes
+# Variables and state management - ENHANCED v3.8.2 with unified daytime control
 variables:
   # Store start time for performance monitoring
   start_time: "{{ now().timestamp() }}"
@@ -695,9 +696,8 @@ variables:
   light_switch: !input light_switch
   light_entities: !input light_entities
   control_mode: !input control_mode
-  enable_away_mode: !input enable_away_mode
+  daytime_control_mode: !input daytime_control_mode
   presence_trackers: !input presence_trackers
-  enable_no_daytime_lights: !input enable_no_daytime_lights
   sunrise_offset_minutes: !input sunrise_offset_minutes
   sunset_offset_minutes: !input sunset_offset_minutes
   bed_occupied_helper: !input bed_occupied_helper
@@ -733,13 +733,14 @@ variables:
   has_bed_sensor: "{{ bed_occupied_helper != '' and bed_occupied_helper is not none }}"
   has_presence_trackers: "{{ presence_trackers | length > 0 }}"
   
-  # NEW v3.8: Calculate daytime based on sun with offsets
-  # Use a simple and reliable approach based on sun elevation
+  # Check if trackers are required but missing
+  trackers_required: "{{ daytime_control_mode == 'block_when_away' }}"
+  trackers_missing: "{{ trackers_required and not has_presence_trackers }}"
+  
+  # Calculate daytime based on sun with offsets
   sun_elevation: "{{ state_attr('sun.sun', 'elevation') | float(0) }}"
   
-  # Simple daytime calculation:
-  # Daytime = sun is high enough based on offsets
-  # Default: +30min sunrise = ~3° above horizon, -30min sunset = ~3° above horizon
+  # Simple daytime calculation based on sun elevation
   is_daytime: >-
     {% set elevation = state_attr('sun.sun', 'elevation') | float(0) %}
     {# Each 10 minutes ≈ 2.5° of sun movement near horizon #}
@@ -761,25 +762,25 @@ variables:
       {{ elevation >= [sunrise_elevation, sunset_elevation] | max }}
     {% endif %}
   
-  # NEW v3.8: Check if anyone is home (via device trackers)
-  # This is for whole-house presence, not room presence
+  # Check if anyone is home (via device trackers)
   someone_home: >-
-    {% if not enable_away_mode or not has_presence_trackers %}
+    {% if daytime_control_mode != 'block_when_away' or not has_presence_trackers %}
       {{ true }}
     {% else %}
       {% set home_devices = expand(presence_trackers) | selectattr('state', 'eq', 'home') | list %}
       {{ home_devices | count > 0 }}
     {% endif %}
   
-  # Away mode active (nobody home AND daytime)
+  # NEW v3.8.2: Unified daytime control logic
+  # Away mode active (nobody home AND daytime AND mode set to block_when_away)
   away_mode_active: >-
-    {{ enable_away_mode and has_presence_trackers and not someone_home and is_daytime }}
+    {{ daytime_control_mode == 'block_when_away' and has_presence_trackers and not someone_home and is_daytime }}
   
   # No daytime lights mode active
   no_daytime_lights_active: >-
-    {{ enable_no_daytime_lights and is_daytime }}
+    {{ daytime_control_mode == 'always_block' and is_daytime }}
   
-  # NEW v3.8: Should prevent automatic turn ON (but still allow OFF)
+  # Should prevent automatic turn ON (but still allow OFF)
   prevent_auto_on: >-
     {{ away_mode_active or no_daytime_lights_active }}
   
@@ -890,7 +891,7 @@ variables:
       {% endif %}
     {% endif %}
   
-  # Basic state validations - check for valid states (FIXED: return booleans)
+  # Basic state validations - check for valid states (return booleans)
   pir_valid: >-
     {{ pir_state not in ['unknown', 'unavailable', None, ''] }}
   mmwave_valid: >-
@@ -912,7 +913,7 @@ variables:
   someone_present: >-
     {{ pir_active or mmwave_active }}
   
-  # Bed occupancy with guest mode override (FIXED: return boolean)
+  # Bed occupancy with guest mode override (return boolean)
   bed_occupied_raw: "{{ bed_valid and bed_state == 'on' }}"
   bed_occupied: >-
     {% if not has_bed_sensor %}
@@ -943,7 +944,7 @@ variables:
       []
     {% endif %}
 
-  # ENHANCED v3.7: Smart illuminance averaging with spike AND drop detection
+  # Smart illuminance averaging with spike AND drop detection
   illuminance: >-
     {% if not enable_illuminance_averaging %}
       {{ illuminance_raw }}
@@ -1165,7 +1166,7 @@ variables:
       {{ false }}
     {% endif %}
   
-  # MODIFIED v3.8.1: Automation intent with away mode and no daytime lights (FIXED: return booleans)
+  # Automation intent with daytime control (return booleans)
   auto_would_turn_on: >-
     {% if prevent_auto_on %}
       {{ false }}
@@ -1173,7 +1174,7 @@ variables:
       {{ is_dark and someone_present and not bed_occupied }}
     {% endif %}
   
-  # Turn OFF is always allowed (energy saving) - but only when vacant or bed occupied (FIXED: return booleans)
+  # Turn OFF is always allowed (energy saving) - but only when vacant or bed occupied (return booleans)
   auto_would_turn_off: >-
     {% if not someone_present and lights_on %}
       {{ true }}
@@ -1408,6 +1409,24 @@ action:
   - variables:
       action_start_time: "{{ now().timestamp() }}"
   
+  # NEW v3.8.2: Check for missing trackers when required
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trackers_missing and is_periodic_trigger }}"
+        sequence:
+          - service: persistent_notification.create
+            data:
+              title: "{{ room_name }} - Configuration Warning"
+              message: >-
+                ⚠️ "Block When Away" mode requires device trackers!
+                
+                You've selected "Block When Away" but haven't configured any device trackers.
+                The automation will work but won't prevent daytime lighting when away.
+                
+                To fix: Add device trackers in the automation configuration.
+              notification_id: "{{ room_name }}_tracker_warning"
+  
   # State recovery - clear stale helpers
   - choose:
       - conditions:
@@ -1572,6 +1591,10 @@ action:
     data:
       notification_id: "{{ room_name }}_lighting_config_error"
     continue_on_error: true
+  - service: persistent_notification.dismiss
+    data:
+      notification_id: "{{ room_name }}_tracker_warning"
+    continue_on_error: true
   
   # Update illuminance history
   - choose:
@@ -1619,7 +1642,7 @@ action:
                   {% endif %}
                 {% endif %}
   
-  # ENHANCED v3.8: Debug with away mode and daytime control info
+  # ENHANCED v3.8.2: Debug with unified daytime control info
   - if:
       - condition: template
         value_template: "{{ enable_debug_logs }}"
@@ -1635,9 +1658,8 @@ action:
             │ Room Presence: {{ 'YES' if someone_present else 'NO' }} (PIR={{ pir_state }}/{{ pir_active }}, mmWave={{ mmwave_state }}/{{ mmwave_active }})
             │ Home Presence: {{ 'SOMEONE HOME' if someone_home else 'NOBODY HOME' }} {% if has_presence_trackers %}({{ expand(presence_trackers) | selectattr('state', 'eq', 'home') | map(attribute='name') | list | join(', ') or 'all away' }}){% endif %}
             │ Daytime: {{ 'YES' if is_daytime else 'NO' }} (sun elevation: {{ sun_elevation }}°)
-            │ Away Mode: {{ 'ACTIVE' if away_mode_active else 'ENABLED' if enable_away_mode else 'DISABLED' }}
-            │ No Daytime Lights: {{ 'ACTIVE' if no_daytime_lights_active else 'ENABLED' if enable_no_daytime_lights else 'DISABLED' }}
-            │ Prevent Auto-ON: {{ 'YES' if prevent_auto_on else 'NO' }}
+            │ Daytime Control: {{ daytime_control_mode | upper | replace('_', ' ') }}
+            │ Prevent Auto-ON: {{ 'YES' if prevent_auto_on else 'NO' }} {% if prevent_auto_on %}({{ 'nobody home' if away_mode_active else 'daytime block' }}){% endif %}
             │ Illuminance: {{ illuminance }}lux (dark<{{ dark_threshold }}, bright≥{{ bright_threshold }})
             │ Override: {{ 'ACTIVE' if manual_override else 'INACTIVE' }}
             │ Bed: {% if has_bed_sensor %}{{ 'OCCUPIED' if bed_occupied_raw else 'EMPTY' }}{% else %}NO SENSOR{% endif %}
@@ -1767,7 +1789,7 @@ action:
                     ┌─ {{ room_name | upper }} MANUAL CHANGE DETECTED ──────────────
                     │ Action: Turned {{ 'ON' if user_turned_on else 'OFF' }}
                     │ Entity: {{ trigger.entity_id }}
-                    │ Auto would: {{ 'turn ON' if auto_would_turn_on else 'turn OFF' if auto_would_turn_off else 'do nothing (prevented by away/daytime mode)' if prevent_auto_on else 'do nothing' }}
+                    │ Auto would: {{ 'turn ON' if auto_would_turn_on else 'turn OFF' if auto_would_turn_off else 'do nothing (prevented by daytime control)' if prevent_auto_on else 'do nothing' }}
                     │ Illuminance: {{ illuminance }}lux
                     │ Presence: {{ 'YES' if someone_present else 'NO' }}
                     └──────────────────────────────────────────────────
@@ -1949,7 +1971,7 @@ action:
                     │ Should: {{ 'turn ON' if (auto_would_turn_on and not lights_on and not prevent_auto_on) else 'turn OFF' if (auto_would_turn_off and lights_on) else 'prevent auto-ON' if (prevent_auto_on and is_dark and someone_present and not lights_on) else 'do nothing' }}
           
           - choose:
-              # Turn lights ON (only if not prevented by away/daytime modes)
+              # Turn lights ON (only if not prevented by daytime control)
               - conditions:
                   - condition: template
                     value_template: "{{ auto_would_turn_on and not lights_on and not prevent_auto_on }}"
@@ -2169,7 +2191,7 @@ action:
                           level: info
                           message: >-
                             [{{ room_name | upper }}] AUTO-ON PREVENTED
-                            │ Reason: {% if away_mode_active %}Away mode (nobody home during daytime){% elif no_daytime_lights_active %}No daytime lights mode{% else %}Unknown{% endif %}
+                            │ Reason: {% if away_mode_active %}Block when away (nobody home during daytime){% elif no_daytime_lights_active %}Always block daytime mode{% else %}Unknown{% endif %}
                             │ Would have turned on: Dark ({{ illuminance }}lux) and occupied
   
   # Decision summary with performance metrics
@@ -2186,7 +2208,7 @@ action:
             ├─ Home Presence: {{ 'SOMEONE HOME' if someone_home else 'NOBODY HOME' }}
             ├─ Daytime: {{ 'YES' if is_daytime else 'NO' }}
             ├─ Light Level: {{ illuminance }}lux ({{ 'Dark' if is_dark else 'Bright' if is_bright else 'Medium' }})
-            ├─ Away/Daytime Prevention: {{ 'ACTIVE' if prevent_auto_on else 'INACTIVE' }}
+            ├─ Daytime Prevention: {{ 'ACTIVE' if prevent_auto_on else 'INACTIVE' }}
             ├─ Override: {{ 'ACTIVE' if manual_override else 'INACTIVE' }}
             ├─ Action Taken: {% if lights_on != (expand(light_entities) | selectattr('state', 'eq', 'on') | list | count > 0 if has_lights else is_state(light_switch, 'on') if has_switch else false) %}Lights {{ 'turned ON' if (expand(light_entities) | selectattr('state', 'eq', 'on') | list | count > 0 if has_lights else is_state(light_switch, 'on') if has_switch else false) else 'turned OFF' }}{% elif prevent_auto_on %}Auto-ON prevented{% else %}No change{% endif %}
             ├─ Execution Time: {{ ((now().timestamp() - action_start_time) * 1000) | round(1) }}ms
