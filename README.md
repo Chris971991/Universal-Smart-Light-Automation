@@ -384,18 +384,18 @@ A: Ensure all helper entity IDs are lowercase. "Office" room = "office" in entit
 
 ## 📝 Version History
 
-### v3.8.1 (2024-08-26)
+### v3.8.1 (2025-08-26)
 - **Fixed**: Boolean logic in manual override system
 - **Fixed**: Override properly clears when action matches automation
 - **Fixed**: String/boolean type confusion in templates
 
-### v3.8.0 (2024-08-20)
+### v3.8.0 (2025-08-20)
 - **Added**: Away Mode with phone tracking
 - **Added**: No Daytime Lights option
 - **Added**: Enhanced bedroom support
 - **Added**: Performance metrics
 
-### v3.7.0 (2024-08-10)
+### v3.7.0 (2025-08-10)
 - **Added**: Illuminance spike protection
 - **Added**: Threshold validation
 - **Added**: State recovery system
