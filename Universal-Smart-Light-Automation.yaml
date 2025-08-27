@@ -47,7 +47,7 @@ blueprint:
     • **Performance Tracking** - Monitors automation efficiency
     
     For full version history and documentation, visit:
-    https://github.com/YourUsername/Universal-Smart-Light-Automation
+    https://github.com/Chris971991/universal-smart-light-automation
 
     ## Features
 
@@ -682,11 +682,89 @@ blueprint:
       default: false
       selector:
         boolean:
+    enable_update_check:
+      name: Check for Updates (Optional)
+      description: >
+        Get notified when a new version is available.
+        
+        **Quick Setup** (30 seconds):
+        1. Add this to your `configuration.yaml`:
+        ```yaml
+        sensor:
+          - platform: rest
+            name: "Universal Lighting Updates"
+            resource: https://api.github.com/repos/Chris971991/universal-smart-light-automation/releases/latest
+            value_template: "{{ value_json.tag_name | default('unknown') }}"
+            scan_interval: 86400
+        ```
+        2. Restart Home Assistant
+        3. Enable this option
+        
+        That's it! You'll get notifications for updates.
+      default: false
+      selector:
+        boolean:
 
 # Variables and state management - ENHANCED v3.8.2 with unified daytime control
 variables:
   # Store start time for performance monitoring
   start_time: "{{ now().timestamp() }}"
+  
+  # Version checking
+  blueprint_version: "3.8.2"  # UPDATE THIS WITH EACH RELEASE
+  enable_update_check: !input enable_update_check
+  update_sensor: "sensor.universal_lighting_updates"
+  
+  # Check if sensor exists and has data
+  sensor_exists: >-
+    {{ states(update_sensor) not in ['unknown', 'unavailable', None] }}
+  
+  # Get latest version safely
+  latest_version: >-
+    {% if sensor_exists %}
+      {{ states(update_sensor) | replace('v', '') | replace('V', '') }}
+    {% else %}
+      {{ blueprint_version }}
+    {% endif %}
+  
+  # Check if update available
+  update_available: >-
+    {% if enable_update_check and sensor_exists %}
+      {% set current = blueprint_version | replace('v', '') | replace('V', '') %}
+      {% set latest = latest_version %}
+      {% if current != latest %}
+        {% set current_parts = current.split('.') | map('int', 0) | list %}
+        {% set latest_parts = latest.split('.') | map('int', 0) | list %}
+        {% if latest_parts[0] > current_parts[0] %}
+          true
+        {% elif latest_parts[0] == current_parts[0] and latest_parts[1] | default(0) > current_parts[1] | default(0) %}
+          true
+        {% elif latest_parts[0] == current_parts[0] and latest_parts[1] | default(0) == current_parts[1] | default(0) and latest_parts[2] | default(0) > current_parts[2] | default(0) %}
+          true
+        {% else %}
+          false
+        {% endif %}
+      {% else %}
+        false
+      {% endif %}
+    {% else %}
+      false
+    {% endif %}
+  
+  # Get release info if available
+  release_name: >-
+    {% if sensor_exists %}
+      {{ state_attr(update_sensor, 'name') | default('New Version Available') }}
+    {% else %}
+      ""
+    {% endif %}
+  
+  release_url: >-
+    {% if sensor_exists %}
+      {{ state_attr(update_sensor, 'html_url') | default('https://github.com/Chris971991/universal-smart-light-automation/releases/latest') }}
+    {% else %}
+      ""
+    {% endif %}
   
   # Input variables
   room_name: !input room_name
@@ -1375,6 +1453,15 @@ trigger:
   - platform: time_pattern
     minutes: "/1"
     id: periodic_check
+  
+  # Check for updates periodically
+  - platform: time
+    at: "10:00:00"
+    id: update_check
+  
+  - platform: state
+    entity_id: sensor.universal_lighting_updates
+    id: update_sensor_changed
 
 # Conditions
 condition:
@@ -1399,7 +1486,7 @@ condition:
   # Don't trigger on attribute-only changes
   - condition: template
     value_template: >-
-      {{ trigger.id == 'periodic_check' or 
+      {{ trigger.id == 'periodic_check' or trigger.id == 'update_check' or trigger.id == 'update_sensor_changed' or
          (trigger.from_state is defined and trigger.to_state is defined and
           trigger.from_state.state != trigger.to_state.state) }}
 
@@ -1408,6 +1495,87 @@ action:
   # Performance tracking start
   - variables:
       action_start_time: "{{ now().timestamp() }}"
+  
+  # Version update check (only if enabled)
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ enable_update_check and 
+                 (trigger.id == 'update_check' or trigger.id == 'update_sensor_changed') }}
+        sequence:
+          # Check if sensor exists, if not show setup instructions
+          - choose:
+              # Sensor missing - show setup instructions
+              - conditions:
+                  - condition: template
+                    value_template: "{{ not sensor_exists }}"
+                sequence:
+                  - service: persistent_notification.create
+                    data:
+                      title: "💡 Enable Update Notifications - {{ room_name }}"
+                      message: >-
+                        To get update notifications for your lighting automation:
+                        
+                        **Add this to `configuration.yaml`:**
+                        ```yaml
+                        sensor:
+                          - platform: rest
+                            name: "Universal Lighting Updates"
+                            resource: https://api.github.com/repos/Chris971991/universal-smart-light-automation/releases/latest
+                            value_template: "{{ '{{ value_json.tag_name | default(\'unknown\') }}' }}"
+                            scan_interval: 86400
+                        ```
+                        
+                        Then restart Home Assistant. This message will only appear once per day.
+                      notification_id: "lighting_update_setup_{{ room_name | lower | replace(' ', '_') }}"
+              
+              # Update available - show update notification  
+              - conditions:
+                  - condition: template
+                    value_template: "{{ sensor_exists and update_available }}"
+                sequence:
+                  - service: persistent_notification.create
+                    data:
+                      title: "🎉 Lighting Update Available - {{ room_name }}"
+                      message: >-
+                        **New version {{ latest_version }} is available!**
+                        You have version {{ blueprint_version }}
+                        
+                        **{{ release_name }}**
+                        
+                        **How to Update:**
+                        1. Go to **Settings** → **Automations & Scenes** → **Blueprints**
+                        2. Find "Universal Smart Presence Lighting Control"
+                        3. Click **⋮** → **Re-import Blueprint**
+                        4. Your automations will keep working!
+                        
+                        [📖 View What's New]({{ release_url }})
+                      notification_id: "lighting_update_available_{{ room_name | lower | replace(' ', '_') }}"
+                  
+                  # Clear the setup notification if it exists
+                  - service: persistent_notification.dismiss
+                    data:
+                      notification_id: "lighting_update_setup_{{ room_name | lower | replace(' ', '_') }}"
+                    continue_on_error: true
+              
+              # Up to date - clear any notifications
+              - conditions:
+                  - condition: template
+                    value_template: "{{ sensor_exists and not update_available }}"
+                sequence:
+                  - service: persistent_notification.dismiss
+                    data:
+                      notification_id: "lighting_update_available_{{ room_name | lower | replace(' ', '_') }}"
+                    continue_on_error: true
+                  - service: persistent_notification.dismiss
+                    data:
+                      notification_id: "lighting_update_setup_{{ room_name | lower | replace(' ', '_') }}"
+                    continue_on_error: true
+  
+  # Skip the update check triggers for normal automation
+  - condition: template
+    value_template: "{{ trigger.id not in ['update_check', 'update_sensor_changed'] }}"
   
   # NEW v3.8.2: Check for missing trackers when required
   - choose:
@@ -1651,7 +1819,7 @@ action:
         data:
           level: warning
           message: >-
-            ┌─ {{ room_name | upper }} AUTOMATION START ─────────────────────────
+            ┌─ {{ room_name | upper }} AUTOMATION START ─────────────────────────────
             │ Trigger: {{ trigger.id }} ({{ trigger.description | default('manual') }})
             │ Control Mode: {{ control_mode }}
             │ Lights On: {{ 'YES' if lights_on else 'NO' }}
@@ -1665,7 +1833,7 @@ action:
             │ Bed: {% if has_bed_sensor %}{{ 'OCCUPIED' if bed_occupied_raw else 'EMPTY' }}{% else %}NO SENSOR{% endif %}
             │ Guest Mode: {{ 'ENABLED' if enable_guest_mode else 'DISABLED' }}
             │ Auto would turn OFF: {{ auto_would_turn_off }}
-            └──────────────────────────────────────────────────
+            └───────────────────────────────────────────────────
   
   # Skip if automation is already active
   - condition: template
@@ -1739,10 +1907,10 @@ action:
                 data:
                   level: warning
                   message: >-
-                    ┌─ {{ room_name | upper }} OVERRIDE CLEARED ─────────────────────────
+                    ┌─ {{ room_name | upper }} OVERRIDE CLEARED ─────────────────────────────
                     │ Reason: {{ override_clear_reason }}
                     │ Was active for: {{ override_active_minutes }} minutes
-                    └──────────────────────────────────────────────────
+                    └───────────────────────────────────────────────────
           - delay:
               milliseconds: 100
           - service: automation.trigger
@@ -1792,7 +1960,7 @@ action:
                     │ Auto would: {{ 'turn ON' if auto_would_turn_on else 'turn OFF' if auto_would_turn_off else 'do nothing (prevented by daytime control)' if prevent_auto_on else 'do nothing' }}
                     │ Illuminance: {{ illuminance }}lux
                     │ Presence: {{ 'YES' if someone_present else 'NO' }}
-                    └──────────────────────────────────────────────────
+                    └───────────────────────────────────────────────────
           
           # Determine if override should be set or cleared
           - choose:
@@ -2074,7 +2242,7 @@ action:
                             │ Brightness: {{ adaptive_brightness }}%
                             │ Color Temp: {{ adaptive_color_temp }}K
                             │ Guest Mode: {{ 'YES' if enable_guest_mode else 'NO' }}
-                            └──────────────────────────────────────────────────
+                            └───────────────────────────────────────────────────
               
               # Turn lights OFF (always allowed for energy saving)
               - conditions:
@@ -2175,7 +2343,7 @@ action:
                             │ Control Mode: {{ control_mode }}
                             │ Reason: {% if turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}Bed occupied{% else %}Room vacant{% endif %}
                             │ Fade Off: {{ effective_fade_off_time }}s
-                            └──────────────────────────────────────────────────
+                            └───────────────────────────────────────────────────
               
               # Log when prevented from turning on (but not when lights already on)
               - conditions:
@@ -2212,7 +2380,7 @@ action:
             ├─ Override: {{ 'ACTIVE' if manual_override else 'INACTIVE' }}
             ├─ Action Taken: {% if lights_on != (expand(light_entities) | selectattr('state', 'eq', 'on') | list | count > 0 if has_lights else is_state(light_switch, 'on') if has_switch else false) %}Lights {{ 'turned ON' if (expand(light_entities) | selectattr('state', 'eq', 'on') | list | count > 0 if has_lights else is_state(light_switch, 'on') if has_switch else false) else 'turned OFF' }}{% elif prevent_auto_on %}Auto-ON prevented{% else %}No change{% endif %}
             ├─ Execution Time: {{ ((now().timestamp() - action_start_time) * 1000) | round(1) }}ms
-            └─ Performance: {% if ((now().timestamp() - start_time) * 1000) < 100 %}⚡ Excellent{% elif ((now().timestamp() - start_time) * 1000) < 500 %}✓ Good{% else %}⚠️ Slow{% endif %}
+            └─ Performance: {% if ((now().timestamp() - start_time) * 1000) < 100 %}⚡ Excellent{% elif ((now().timestamp() - start_time) * 1000) < 500 %}✔ Good{% else %}⚠️ Slow{% endif %}
 
 mode: queued
 max: 2
