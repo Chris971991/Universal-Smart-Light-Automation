@@ -1,8 +1,8 @@
 # Universal Smart Presence Lighting Control
-### Enhanced Version 3.8.2 - The Only Light Automation Blueprint You'll Ever Need
+### Enhanced Version 3.8.3 - The Only Light Automation Blueprint You'll Ever Need
 
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Blueprint-blue)](https://www.home-assistant.io/docs/automation/using_blueprints/)
-[![Version](https://img.shields.io/badge/Version-3.8.2-green)]()
+[![Version](https://img.shields.io/badge/Version-3.8.3-green)]()
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)]()
 
 A sophisticated, universal lighting automation blueprint for Home Assistant that intelligently manages your lights based on presence, ambient light levels, and manual preferences. Works perfectly for **ANY** room type - bedrooms, offices, living rooms, kitchens, bathrooms, and more.
@@ -24,9 +24,12 @@ A sophisticated, universal lighting automation blueprint for Home Assistant that
 - **📊 Performance Tracking** - Monitors automation efficiency
 - **🔍 Debug Logging** - Detailed decision tree logging
 - **🌡️ Illuminance Averaging** - Filters out lighting spikes/drops
+- **🔕 Clean Logging** - Error logs always visible, debug logs only when needed (v3.8.3)
 
-### Latest Updates (v3.8.2)
-- **Enhanced** - Combined "Enable Away Mode" + "Disable ALL Automatic Turn-On During Daytime" features into one for redundancy (Daytime Control Mode)
+### Latest Updates (v3.8.3)
+- **Improved** - Smart logging control: critical errors always visible, all other logs only when debugging
+- **Enhanced** - Multi-room friendly: debug logs only appear for rooms you're actively troubleshooting
+- **Optimized** - Better performance with reduced logging overhead when not debugging
 
 ## 📋 Table of Contents
 - [Requirements](#-requirements)
@@ -67,7 +70,7 @@ A sophisticated, universal lighting automation blueprint for Home Assistant that
 ### Method 1: Import via URL
 1. Copy this URL:
    ```
-   https://github.com/YourUsername/universal-smart-light-automation/blob/main/universal-smart-light-automation.yaml
+   https://github.com/Chris971991/universal-smart-light-automation/blob/main/universal-smart-light-automation.yaml
    ```
 2. In Home Assistant, go to **Settings** → **Automations & Scenes** → **Blueprints**
 3. Click **Import Blueprint**
@@ -166,28 +169,39 @@ Choose your setup:
 
 ### Advanced Configuration
 
-#### Daytime Control Mode (v3.8.2)
-Prevents lights from turning on during daytime based on m,ultiple optios.
+#### Debug Logging (v3.8.3 Enhanced)
+Control what appears in your Home Assistant logs:
+
+**When ENABLED**:
+- All automation decisions are logged
+- Detailed state changes tracked
+- Performance metrics shown
+- Perfect for troubleshooting
+
+**When DISABLED**:
+- Only critical errors are logged
+- Silent operation for normal use
+- Clean logs when running multiple rooms
+- Reduces system overhead
+
+**Important**: Error logs are ALWAYS shown regardless of this setting, ensuring you never miss critical issues!
+
+#### Daytime Control Mode
+Prevents lights from turning on during daytime based on multiple options.
 
 **Setup**:
-1. Enable "Daytime Control Mode"
-2. Choose which control mode to use:
-- Always Allow - Normal operation, lights turn on automatically when dark and occupied
-- Block When Away - Energy saving mode - prevents auto-on during daytime when nobody's home (Requires phone/device trackers to be configured below)
-- Always Block - Maximum energy saving - never auto-on during daytime regardless of presence (Perfect for rooms with good natural light)
-2. Add family phones/device trackers (A must if using option "Block When Away - Save energy when gone")
+1. Choose which control mode to use:
+   - **Always Allow** - Normal operation, lights turn on automatically when dark and occupied
+   - **Block When Away** - Energy saving mode - prevents auto-on during daytime when nobody's home
+   - **Always Block** - Maximum energy saving - never auto-on during daytime regardless of presence
+2. Add family phones/device trackers (Required for "Block When Away" mode)
 3. Configure sunrise/sunset offsets
 
 **How it works**:
-- Always Allow: The lights will always be automated no matter what time of the day it is or Sunrise/Sunset.
-- Block When Away: Checks if ANY tracked device is home. If there are no devices home, the lights will not turn on during the daytime based on Sunrise/Sunset.
-- Always Block: The lights will never automate turning on during the daytime based on your Sunrise/Sunset settings.
-- The main fucntion is to revents the lights being turned on during the daytime (e.g., Pets are walking through the house in a room with closed blinds, making the automation turn the lights on and wasting power)
+- Prevents lights being turned on during daytime (e.g., pets walking through rooms)
 - Nighttime security lighting still works
 - Manual control always works
-- If lights are turned on manually during the day, it will still turn them off based on either vacancy detected or the manual mode expires
-- Daytime control mode will come into effect based on your local Sunrise/Sunset.
-- Modify the Sunrise Offset and Sunset Offset if you would like to modify when the lights turn into automatic mode or Daytime Control Mode (e.g., +-30 minutes)
+- Still turns lights OFF automatically for energy saving
 
 #### Guest Mode
 Modified behavior for when you have visitors:
@@ -223,17 +237,17 @@ Modified behavior for when you have visitors:
 
 #### Automatic Update Notifications (Optional)
 
-Get notified when new blueprint versions are available! To enable this feature:
+Get notified when new blueprint versions are available!
 
 **Step 1:** Add this sensor to your configuration.yaml file:
 
 ```yaml
 sensor:
-    - platform: rest
+  - platform: rest
     name: "Universal Lighting Updates"
     resource: https://api.github.com/repos/Chris971991/universal-smart-light-automation/releases/latest
     value_template: >
-        {{ '{{' }} value_json.tag_name | default('unknown') {{ '}}' }}
+      {{ value_json.tag_name | default('unknown') }}
     scan_interval: 86400
 ```
     
@@ -262,7 +276,7 @@ graph TD
     K -->|No| M[Turn On Lights]
 ```
 
-### Manual Override Logic (v3.8.1 Fixed)
+### Manual Override Logic
 
 The automation intelligently manages manual overrides:
 
@@ -301,7 +315,8 @@ Bright Threshold: 200 lux
 Vacancy Timeout Multiplier: 5
 Override Behavior: Timeout Only
 Override Timeout: 4 hours
-No Daytime Lights: Disabled
+Daytime Control: Always Allow
+Enable Debug Logs: No (for daily use)
 ```
 
 ### Bedroom Configuration
@@ -313,6 +328,7 @@ Bed Sensor: binary_sensor.bed_occupancy
 Turn Off When Bed Occupied: Enabled
 Vacancy Timeout Multiplier: 3
 Guest Mode: Available for visitors
+Enable Debug Logs: No (for daily use)
 ```
 
 ### Living Room Configuration
@@ -323,7 +339,8 @@ Bright Threshold: 250 lux
 Adaptive Brightness: Enabled
 Color Temperature Control: Enabled
 Guest Mode: Enabled for parties
-Away Mode: Enabled
+Daytime Control: Block When Away
+Enable Debug Logs: No (for daily use)
 ```
 
 ### Bathroom Configuration
@@ -334,6 +351,7 @@ Bright Threshold: 300 lux
 Vacancy Timeout Multiplier: 2
 Override Behavior: Vacancy Can Clear
 Fade On/Off: Disabled (instant)
+Enable Debug Logs: No (for daily use)
 ```
 
 ## 🔧 Troubleshooting
@@ -346,7 +364,7 @@ Fade On/Off: Disabled (instant)
 3. **Check override** - Is manual override active?
 4. **Check presence** - Is sensor detecting you?
 5. **Check bed sensor** - Is bed marked as occupied?
-6. **Check away mode** - Is it daytime with nobody home?
+6. **Check daytime mode** - Is it daytime with control enabled?
 
 #### Lights Not Turning Off
 1. **Check presence** - Sensor still detecting movement?
@@ -357,6 +375,11 @@ Fade On/Off: Disabled (instant)
 1. **Verify helpers** - Ensure boolean helpers working
 2. **Check timeout** - Has enough time passed?
 3. **Check presence respect** - Still in room?
+
+#### Too Many Logs in Multi-Room Setup (v3.8.3 Solution)
+1. **Disable debug logs** for rooms not being troubleshot
+2. **Enable debug logs** only for the specific room you're debugging
+3. **Critical errors** will still appear for all rooms
 
 ### Debug Mode
 
@@ -375,6 +398,8 @@ Example debug output:
 │ Override: INACTIVE
 │ Should: turn ON
 ```
+
+**Note**: In v3.8.3+, these detailed logs only appear when debug is enabled for that specific room!
 
 ## ❓ FAQ
 
@@ -396,10 +421,19 @@ A: Yes, disable the automation entity or use Guest Mode for modified behavior.
 **Q: Why aren't my helpers working?**
 A: Ensure all helper entity IDs are lowercase. "Office" room = "office" in entity IDs.
 
+**Q: How do I reduce log spam with multiple rooms? (v3.8.3+)**
+A: Disable "Enable Debug Logs" for rooms you're not actively troubleshooting. Critical errors will still be logged.
+
 ## 📝 Version History
 
-### V3.8.2 (2025-08-26)
-- **Update** - Combined "Enable Away Mode" + "Disable ALL Automatic Turn-On During Daytime" features into one for redundancy (Daytime Control Mode)
+### v3.8.3 (2025-08-27)
+- **Improved**: Smart logging control - errors always visible, debug logs conditional
+- **Enhanced**: Multi-room friendly - only debug rooms you select will log
+- **Optimized**: Reduced logging overhead for better performance
+- **Fixed**: All non-critical logs now properly respect debug setting
+
+### v3.8.2 (2025-08-26)
+- **Simplified**: Combined redundant Away/No-Daytime features into unified Daytime Control Mode
 
 ### v3.8.1 (2025-08-26)
 - **Fixed**: Boolean logic in manual override system

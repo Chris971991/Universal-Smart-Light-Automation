@@ -1,28 +1,10 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - Enhanced v3.8.2
+  name: Universal Smart Presence Lighting Control - Enhanced v3.8.3
   description: >
-    # Universal Smart Presence Lighting Control - Enhanced Version 3.8.2
+    # Universal Smart Presence Lighting Control - Enhanced Version 3.8.3
     
     Intelligently manages your lighting based on room occupancy, light levels, and manual controls.
     Works perfectly for ANY room - bedrooms, offices, living rooms, kitchens, bathrooms, etc.
-    
-    ---
-    
-    ## 🔄 Automatic Update Notifications (Optional)
-    
-    Get notified when new blueprint versions are available! To enable this feature:
-    
-    **Step 1:** Add this sensor to your configuration.yaml file:
-    
-    ```yaml
-    sensor:
-      - platform: rest
-        name: "Universal Lighting Updates"
-        resource: https://api.github.com/repos/Chris971991/universal-smart-light-automation/releases/latest
-        value_template: >
-          {{ '{{' }} value_json.tag_name | default('unknown') {{ '}}' }}
-        scan_interval: 86400
-    ```
     
     **Step 2:** Restart Home Assistant
     
@@ -36,37 +18,13 @@ blueprint:
     • **Offices** - Productivity-focused lighting
     • **Any Room** - Fully customizable behavior
     
-    ## NEW IN v3.8.2: Simplified Daytime Control
+    ## NEW IN v3.8.3: Improved Logging Control
     
-    • **Unified Daytime Mode** - Single setting replaces redundant Away/No-Daytime options
+    • **Smart Logging** - Error logs always visible for critical issues
     
-    • **Three Clear Choices** - Always Allow, Block When Away, or Always Block
+    • **Clean Multi-Room** - Debug logs only show for rooms you're troubleshooting
     
-    • **Smarter Configuration** - Cleaner, more intuitive settings
-    
-    ## FIXED IN v3.8.1: Manual Mode Boolean Logic
-    
-    • **Fixed Manual Override** - Properly clears when user action matches automation intent
-    
-    ## ENHANCED IN v3.8: Smart Home Features
-    
-    • **Smart Energy Saving** - Still turns lights OFF automatically even when auto-ON is disabled
-    
-    • **Customizable Daylight Hours** - Define "daytime" with sunrise/sunset offsets
-    
-    • **Phone-Based Presence** - Integrate family phones for whole-home presence detection
-    
-    ## ENHANCED IN v3.7: Reliability & Intelligence
-    
-    • **Illuminance Spike Protection** - Filters out sudden bright spikes (camera flash, lightning)
-    
-    • **Enhanced Threshold Validation** - Warns about problematic threshold configurations
-    
-    • **State Recovery System** - Gracefully handles Home Assistant restarts
-    
-    • **Intelligent Debug Logging** - Provides threshold recommendations
-    
-    • **Performance Tracking** - Monitors automation efficiency
+    • **Better Performance** - Reduced log overhead when not debugging
     
     For full version history and documentation, visit:
     https://github.com/Chris971991/universal-smart-light-automation
@@ -161,6 +119,24 @@ blueprint:
     • Automatic turn-OFF for energy saving
     • Nighttime operation
     
+    ---
+    
+    ## 🔄 Automatic Update Notifications (Optional)
+    
+    Get notified when new blueprint versions are available! To enable this feature:
+    
+    **Step 1:** Add this sensor to your configuration.yaml file:
+    
+    ```yaml
+    sensor:
+      - platform: rest
+        name: "Universal Lighting Updates"
+        resource: https://api.github.com/repos/Chris971991/universal-smart-light-automation/releases/latest
+        value_template: >
+          {{ '{{' }} value_json.tag_name | default('unknown') {{ '}}' }}
+        scan_interval: 86400
+    ```
+
     ## Guest Mode
     
     When enabled, guest mode modifies the automation behavior to be more guest-friendly:
@@ -701,6 +677,8 @@ blueprint:
         Enable detailed debug logging in Home Assistant. These logs help understand
         the automation's decisions and troubleshoot issues.
         View logs in Settings → System → Logs, filtered for your room name.
+        
+        NOTE: Error logs are always shown for critical issues regardless of this setting.
       default: false
       selector:
         boolean:
@@ -715,13 +693,13 @@ blueprint:
       selector:
         boolean:
 
-# Variables and state management - ENHANCED v3.8.2 with unified daytime control
+# Variables and state management - ENHANCED v3.8.3 with proper logging control
 variables:
   # Store start time for performance monitoring
   start_time: "{{ now().timestamp() }}"
   
   # Version checking
-  blueprint_version: "3.8.2"  # UPDATE THIS WITH EACH RELEASE
+  blueprint_version: "3.8.3"  # UPDATE THIS WITH EACH RELEASE
   enable_update_check: !input enable_update_check
   update_sensor: "sensor.universal_lighting_updates"
   
@@ -1654,7 +1632,7 @@ action:
                   level: info
                   message: "[{{ room_name | upper }}] Cleared stale automation_active flag"
   
-  # Threshold validation warnings
+  # Threshold validation warnings (with conditional logging)
   - choose:
       - conditions:
           - condition: template
@@ -1691,7 +1669,7 @@ action:
                     [{{ room_name | upper }}] Threshold gap warning: {{ threshold_gap }} lux
                     Consider increasing gap to at least 10 lux for stability
   
-  # Validate helper entities exist
+  # Validate helper entities exist (ALWAYS show errors)
   - choose:
       - conditions:
           - condition: template
@@ -1717,6 +1695,15 @@ action:
               {% endif %}
               {{ missing | length > 0 }}
         sequence:
+          # ERROR LOG - ALWAYS SHOWN
+          - service: system_log.write
+            data:
+              level: error
+              message: >-
+                [{{ room_name | upper }}] CRITICAL: Missing required helper entities!
+                {% for helper in missing %}
+                - {{ helper }}
+                {% endfor %}
           - service: persistent_notification.create
             data:
               title: "{{ room_name }} Lighting Automation Error"
@@ -1730,7 +1717,7 @@ action:
               notification_id: "{{ room_name }}_lighting_helper_error"
           - stop: "Missing required helper entities"
   
-  # Validate control configuration
+  # Validate control configuration (ALWAYS show errors)
   - choose:
       - conditions:
           - condition: template
@@ -1745,6 +1732,20 @@ action:
                 {{ false }}
               {% endif %}
         sequence:
+          # ERROR LOG - ALWAYS SHOWN
+          - service: system_log.write
+            data:
+              level: error
+              message: >-
+                [{{ room_name | upper }}] CRITICAL: Invalid control configuration!
+                Control mode: {{ control_mode }}
+                {% if control_mode == 'switch_only' %}
+                - No switch entity selected
+                {% elif control_mode == 'lights_only' %}
+                - No light entities selected
+                {% elif control_mode == 'switch_and_lights' %}
+                - Neither switch nor light entities selected
+                {% endif %}
           - service: persistent_notification.create
             data:
               title: "{{ room_name }} Lighting Automation Error"
@@ -1820,7 +1821,7 @@ action:
                   {% endif %}
                 {% endif %}
   
-  # ENHANCED v3.8.2: Debug with unified daytime control info
+  # ENHANCED v3.8.3: Debug with conditional logging (warning level)
   - if:
       - condition: template
         value_template: "{{ enable_debug_logs }}"
@@ -1829,7 +1830,7 @@ action:
         data:
           level: warning
           message: >-
-            ┌─ {{ room_name | upper }} AUTOMATION START ─────────────────────────────
+            ┌─ {{ room_name | upper }} AUTOMATION START ──────────────────────────────────
             │ Trigger: {{ trigger.id }} ({{ trigger.description | default('manual') }})
             │ Control Mode: {{ control_mode }}
             │ Lights On: {{ 'YES' if lights_on else 'NO' }}
@@ -1843,7 +1844,7 @@ action:
             │ Bed: {% if has_bed_sensor %}{{ 'OCCUPIED' if bed_occupied_raw else 'EMPTY' }}{% else %}NO SENSOR{% endif %}
             │ Guest Mode: {{ 'ENABLED' if enable_guest_mode else 'DISABLED' }}
             │ Auto would turn OFF: {{ auto_would_turn_off }}
-            └───────────────────────────────────────────────────
+            └──────────────────────────────────────────────────────────────
   
   # Skip if automation is already active
   - condition: template
@@ -1863,7 +1864,7 @@ action:
         {{ true }}
       {% endif %}
   
-  # Update occupancy state helper if changed
+  # Update occupancy state helper if changed (with conditional logging)
   - choose:
       - conditions:
           - condition: template
@@ -1883,7 +1884,7 @@ action:
                   level: info
                   message: "[{{ room_name | upper }}] Occupancy state updated: {{ 'OCCUPIED' if someone_present else 'VACANT' }}"
   
-  # Debug manual change detection
+  # Debug manual change detection (with conditional logging)
   - if:
       - condition: template
         value_template: "{{ enable_debug_logs and is_primary_trigger }}"
@@ -1897,7 +1898,7 @@ action:
             │ automation_active: {{ automation_active }}
             │ time_since_last_automation: {{ time_since_last_automation }}
 
-  # Override clearing logic
+  # Override clearing logic (with conditional logging)
   - choose:
       - conditions:
           - condition: template
@@ -1917,10 +1918,10 @@ action:
                 data:
                   level: warning
                   message: >-
-                    ┌─ {{ room_name | upper }} OVERRIDE CLEARED ─────────────────────────────
+                    ┌─ {{ room_name | upper }} OVERRIDE CLEARED ──────────────────────────────────
                     │ Reason: {{ override_clear_reason }}
                     │ Was active for: {{ override_active_minutes }} minutes
-                    └───────────────────────────────────────────────────
+                    └──────────────────────────────────────────────────────────────
           - delay:
               milliseconds: 100
           - service: automation.trigger
@@ -1930,7 +1931,7 @@ action:
               skip_condition: false
           - stop: "Override cleared - retriggering automation"
   
-  # Check for active manual override
+  # Check for active manual override (with conditional logging)
   - if:
       - condition: template
         value_template: >-
@@ -1951,7 +1952,7 @@ action:
   
   # Main automation logic
   - choose:
-      # Handle manual light changes
+      # Handle manual light changes (with conditional logging)
       - conditions:
           - condition: template
             value_template: "{{ is_manual_change }}"
@@ -1964,13 +1965,13 @@ action:
                 data:
                   level: warning
                   message: >-
-                    ┌─ {{ room_name | upper }} MANUAL CHANGE DETECTED ──────────────
+                    ┌─ {{ room_name | upper }} MANUAL CHANGE DETECTED ────────────
                     │ Action: Turned {{ 'ON' if user_turned_on else 'OFF' }}
                     │ Entity: {{ trigger.entity_id }}
                     │ Auto would: {{ 'turn ON' if auto_would_turn_on else 'turn OFF' if auto_would_turn_off else 'do nothing (prevented by daytime control)' if prevent_auto_on else 'do nothing' }}
                     │ Illuminance: {{ illuminance }}lux
                     │ Presence: {{ 'YES' if someone_present else 'NO' }}
-                    └───────────────────────────────────────────────────
+                    └──────────────────────────────────────────────────────────────
           
           # Determine if override should be set or cleared
           - choose:
@@ -2123,7 +2124,7 @@ action:
           - condition: template
             value_template: "{{ not manual_override }}"
       
-      # Automatic light control
+      # Automatic light control (with conditional logging)
       - conditions:
           - condition: template
             value_template: "{{ not manual_override and not primary_recently_changed }}"
@@ -2247,12 +2248,12 @@ action:
                         data:
                           level: warning
                           message: >-
-                            ┌─ {{ room_name | upper }} LIGHTS TURNED ON ───────────────────────
+                            ┌─ {{ room_name | upper }} LIGHTS TURNED ON ───────────────────────────
                             │ Control Mode: {{ control_mode }}
                             │ Brightness: {{ adaptive_brightness }}%
                             │ Color Temp: {{ adaptive_color_temp }}K
                             │ Guest Mode: {{ 'YES' if enable_guest_mode else 'NO' }}
-                            └───────────────────────────────────────────────────
+                            └──────────────────────────────────────────────────────────────
               
               # Turn lights OFF (always allowed for energy saving)
               - conditions:
@@ -2349,13 +2350,13 @@ action:
                         data:
                           level: warning
                           message: >-
-                            ┌─ {{ room_name | upper }} LIGHTS TURNED OFF ──────────────────────
+                            ┌─ {{ room_name | upper }} LIGHTS TURNED OFF ──────────────────────────
                             │ Control Mode: {{ control_mode }}
                             │ Reason: {% if turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}Bed occupied{% else %}Room vacant{% endif %}
                             │ Fade Off: {{ effective_fade_off_time }}s
-                            └───────────────────────────────────────────────────
+                            └──────────────────────────────────────────────────────────────
               
-              # Log when prevented from turning on (but not when lights already on)
+              # Log when prevented from turning on (but not when lights already on) - with conditional logging
               - conditions:
                   - condition: template
                     value_template: "{{ prevent_auto_on and is_dark and someone_present and not bed_occupied and not lights_on }}"
@@ -2372,7 +2373,7 @@ action:
                             │ Reason: {% if away_mode_active %}Block when away (nobody home during daytime){% elif no_daytime_lights_active %}Always block daytime mode{% else %}Unknown{% endif %}
                             │ Would have turned on: Dark ({{ illuminance }}lux) and occupied
   
-  # Decision summary with performance metrics
+  # Decision summary with performance metrics (with conditional logging)
   - if:
       - condition: template
         value_template: "{{ enable_debug_logs }}"
@@ -2390,7 +2391,7 @@ action:
             ├─ Override: {{ 'ACTIVE' if manual_override else 'INACTIVE' }}
             ├─ Action Taken: {% if lights_on != (expand(light_entities) | selectattr('state', 'eq', 'on') | list | count > 0 if has_lights else is_state(light_switch, 'on') if has_switch else false) %}Lights {{ 'turned ON' if (expand(light_entities) | selectattr('state', 'eq', 'on') | list | count > 0 if has_lights else is_state(light_switch, 'on') if has_switch else false) else 'turned OFF' }}{% elif prevent_auto_on %}Auto-ON prevented{% else %}No change{% endif %}
             ├─ Execution Time: {{ ((now().timestamp() - action_start_time) * 1000) | round(1) }}ms
-            └─ Performance: {% if ((now().timestamp() - start_time) * 1000) < 100 %}⚡ Excellent{% elif ((now().timestamp() - start_time) * 1000) < 500 %}✔ Good{% else %}⚠️ Slow{% endif %}
+            └─ Performance: {% if ((now().timestamp() - start_time) * 1000) < 100 %}⚡ Excellent{% elif ((now().timestamp() - start_time) * 1000) < 500 %}✓ Good{% else %}⚠️ Slow{% endif %}
 
 mode: queued
 max: 2
