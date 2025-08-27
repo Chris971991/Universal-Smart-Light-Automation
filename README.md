@@ -221,6 +221,26 @@ Modified behavior for when you have visitors:
    - Prevents forgotten overrides
    - Good for: Hallways, bathrooms
 
+#### Automatic Update Notifications (Optional)
+
+Get notified when new blueprint versions are available! To enable this feature:
+
+**Step 1:** Add this sensor to your configuration.yaml file:
+
+```yaml
+sensor:
+    - platform: rest
+    name: "Universal Lighting Updates"
+    resource: https://api.github.com/repos/Chris971991/universal-smart-light-automation/releases/latest
+    value_template: >
+        {{ '{{' }} value_json.tag_name | default('unknown') {{ '}}' }}
+    scan_interval: 86400
+```
+    
+**Step 2:** Restart Home Assistant
+    
+**Step 3:** Enable the "Check for Updates" option at the bottom of this configuration
+
 ## 🔄 How It Works
 
 ### Decision Flow
