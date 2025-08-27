@@ -6,6 +6,28 @@ blueprint:
     Intelligently manages your lighting based on room occupancy, light levels, and manual controls.
     Works perfectly for ANY room - bedrooms, offices, living rooms, kitchens, bathrooms, etc.
     
+    ---
+    
+    ## 🔄 Automatic Update Notifications (Optional)
+    
+    Get notified when new blueprint versions are available! To enable this feature:
+    
+    **Step 1:** Add this sensor to your configuration.yaml file:
+    
+    ```yaml
+    sensor:
+      - platform: rest
+        name: "Universal Lighting Updates"
+        resource: https://api.github.com/repos/Chris971991/universal-smart-light-automation/releases/latest
+        value_template: >
+          {{ '{{' }} value_json.tag_name | default('unknown') {{ '}}' }}
+        scan_interval: 86400
+    ```
+    
+    **Step 2:** Restart Home Assistant
+    
+    **Step 3:** Enable the "Check for Updates" option at the bottom of this configuration
+    
     ## 🎯 UNIVERSAL DESIGN
     
     This single blueprint works for ALL room types:
@@ -683,24 +705,12 @@ blueprint:
       selector:
         boolean:
     enable_update_check:
-      name: Check for Updates (Optional)
+      name: "🔄 Check for Updates"
       description: >
-        Get notified when a new version is available.
+        Enable this AFTER completing the setup steps shown at the top of this blueprint.
         
-        **Quick Setup** (30 seconds):
-        1. Add this to your `configuration.yaml`:
-        ```yaml
-        sensor:
-          - platform: rest
-            name: "Universal Lighting Updates"
-            resource: https://api.github.com/repos/Chris971991/universal-smart-light-automation/releases/latest
-            value_template: "{{ value_json.tag_name | default('unknown') }}"
-            scan_interval: 86400
-        ```
-        2. Restart Home Assistant
-        3. Enable this option
-        
-        That's it! You'll get notifications for updates.
+        If the sensor is configured correctly, you'll receive notifications when updates are available.
+        If not configured, this option does nothing (but won't cause any errors).
       default: false
       selector:
         boolean:
