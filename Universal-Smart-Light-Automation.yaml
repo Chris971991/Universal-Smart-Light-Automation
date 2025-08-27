@@ -6,10 +6,6 @@ blueprint:
     Intelligently manages your lighting based on room occupancy, light levels, and manual controls.
     Works perfectly for ANY room - bedrooms, offices, living rooms, kitchens, bathrooms, etc.
     
-    **Step 2:** Restart Home Assistant
-    
-    **Step 3:** Enable the "Check for Updates" option at the bottom of this configuration
-    
     ## 🎯 UNIVERSAL DESIGN
     
     This single blueprint works for ALL room types:
@@ -136,6 +132,10 @@ blueprint:
           {{ '{{' }} value_json.tag_name | default('unknown') {{ '}}' }}
         scan_interval: 86400
     ```
+    
+    **Step 2:** Restart Home Assistant
+    
+    **Step 3:** Enable the "Check for Updates" option at the bottom of this configuration
 
     ## Guest Mode
     
