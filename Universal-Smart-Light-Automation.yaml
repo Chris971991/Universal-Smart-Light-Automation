@@ -2243,11 +2243,11 @@ action:
                             ┌─ {{ room_name | upper }} LIGHTS TURNED ON ──────────────────────────────────────
                             │ Control Mode: {{ control_mode }}
                             │ Dynamic Mode: {{ dynamic_lighting_mode }}
-                    │ Brightness: {{ adjusted_brightness }}%
-                    │ Color Temp: {{ dynamic_color_temp }}K
-                    │ Illuminance: {{ illuminance }} lux
-                    │ Night Light: {{ 'YES' if should_use_night_light else 'NO' }}
-                    │ Guest Mode: {{ 'YES' if enable_guest_mode else 'NO' }}
+                            │ Brightness: {{ adjusted_brightness }}%
+                            │ Color Temp: {{ dynamic_color_temp }}K
+                            │ Illuminance: {{ illuminance }} lux
+                            │ Night Light: {{ 'YES' if should_use_night_light else 'NO' }}
+                            │ Guest Mode: {{ 'YES' if enable_guest_mode else 'NO' }}
                             │ Bed Exit Delay: {{ bed_exit_delay_seconds }}s{% if is_bed_trigger and not bed_occupied_raw %} (APPLIED ±5s){% endif %}
                             └────────────────────────────────────────────────────────────────
                   
@@ -2343,14 +2343,14 @@ action:
                       brightness_pct: "{{ adjusted_brightness }}"
                       transition: "{{ effective_fade_on_time }}"
               
-                      # Turn on switch if needed
-                      - if:
-                          - condition: template
-                            value_template: "{{ control_mode in ['switch_only', 'switch_and_lights'] and has_switch }}"
-                        then:
-                          - service: homeassistant.turn_on
-                            target:
-                              entity_id: "{{ light_switch }}"
+                  # Turn on switch if needed
+                  - if:
+                      - condition: template
+                        value_template: "{{ control_mode in ['switch_only', 'switch_and_lights'] and has_switch }}"
+                    then:
+                      - service: homeassistant.turn_on
+                        target:
+                          entity_id: "{{ light_switch }}"
                   
                   # Clear automation active flag
                   - service: input_boolean.turn_off
@@ -2366,21 +2366,21 @@ action:
           - condition: template
             value_template: "{{ auto_would_turn_off }}"
         sequence:
-                  - if:
-                      - condition: template
-                        value_template: "{{ enable_debug_logs }}"
-                    then:
-                      - service: system_log.write
-                        data:
-                          level: warning
-                          message: >-
-                            ┌─ {{ room_name | upper }} LIGHTS TURNED OFF ──────────────────────────────────────
-                            │ Control Mode: {{ control_mode }}
-                            │ Reason: {% if turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}Bed occupied{% else %}Room vacant{% endif %}
-                            │ Vacancy Time: {{ room_vacant_minutes }} minutes
-                            │ Fade Off: {{ effective_fade_off_time }}s
-                            │ Bed Entry Delay: {{ bed_entry_delay_seconds }}s{% if is_bed_trigger and bed_occupied_raw %} (APPLIED ±5s){% endif %}
-                            └────────────────────────────────────────────────────────────────
+          - if:
+              - condition: template
+                value_template: "{{ enable_debug_logs }}"
+            then:
+              - service: system_log.write
+                data:
+                  level: warning
+                  message: >-
+                    ┌─ {{ room_name | upper }} LIGHTS TURNED OFF ──────────────────────────────────────
+                    │ Control Mode: {{ control_mode }}
+                    │ Reason: {% if turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}Bed occupied{% else %}Room vacant{% endif %}
+                    │ Vacancy Time: {{ room_vacant_minutes }} minutes
+                    │ Fade Off: {{ effective_fade_off_time }}s
+                    │ Bed Entry Delay: {{ bed_entry_delay_seconds }}s{% if is_bed_trigger and bed_occupied_raw %} (APPLIED ±5s){% endif %}
+                    └────────────────────────────────────────────────────────────────
           
           # Wait for vacancy timeout (with bed entry delay if applicable)
           - if:
@@ -2437,13 +2437,13 @@ action:
                     target:
                       entity_id: "{{ light_switch }}"
               
-          # Clear flags
-          - service: input_boolean.turn_off
-            target:
-              entity_id:
-                - "{{ light_auto_on_helper }}"
-                - "{{ automation_active_helper }}"
-                - "{{ night_light_active_helper }}"
+              # Clear flags
+              - service: input_boolean.turn_off
+                target:
+                  entity_id:
+                    - "{{ light_auto_on_helper }}"
+                    - "{{ automation_active_helper }}"
+                    - "{{ night_light_active_helper }}"
       
       # Log when prevented from turning on
       - conditions:
