@@ -1089,6 +1089,9 @@ variables:
       off
     {% endif %}
   
+  # Timestamps for state change tracking (moved up for availability)
+  current_time: "{{ now().timestamp() }}"
+  
   # Primary control state
   primary_state: >-
     {% if primary_control_entity != 'none' %}
@@ -1160,19 +1163,18 @@ variables:
   
   # Calculate time since bed state changed
   bed_state_seconds_ago: >-
-    {% set current_time = now().timestamp() %}
     {% if bed_state_last_changed > 0 %}
       {{ (current_time - bed_state_last_changed) | round(1) }}
     {% else %}
       999999
     {% endif %}
   
-  # Check if bed state changed recently (for trigger detection)
+  # Check if bed state changed recently (for trigger detection) - FIXED
   bed_state_changed_recently: >-
     {% if has_bed_sensor and states[bed_occupied_helper] %}
       {% set last_change = as_timestamp(states[bed_occupied_helper].last_changed, 0) %}
       {% if last_change > 0 %}
-        {{ (current_time - last_change) < 2 }}
+        {{ (now().timestamp() - last_change) < 2 }}
       {% else %}
         {{ false }}
       {% endif %}
@@ -1320,9 +1322,6 @@ variables:
     {% else %}
       {{ false }}
     {% endif %}
-  
-  # Timestamps for state change tracking
-  current_time: "{{ now().timestamp() }}"
   
   primary_changed_time: >-
     {% if primary_control_entity != 'none' and states[primary_control_entity] %}
@@ -2062,7 +2061,7 @@ action:
                   {% endif %}
                 {% endif %}
   
-  # ENHANCED v3.8.5: Debug with bed delay info and sunrise/sunset times (warning level)
+  # ENHANCED v3.8.5: Debug with bed delay info and sunrise/sunset times (warning level) - FIXED
   - if:
       - condition: template
         value_template: "{{ enable_debug_logs }}"
@@ -2078,8 +2077,8 @@ action:
             │ Room Presence: {{ 'YES' if someone_present else 'NO' }} (PIR={{ pir_state }}/{{ pir_active }}, mmWave={{ mmwave_state }}/{{ mmwave_active }})
             │ Home Presence: {{ 'SOMEONE HOME' if someone_home else 'NOBODY HOME' }} {% if has_presence_trackers %}({{ expand(presence_trackers) | selectattr('state', 'eq', 'home') | map(attribute='name') | list | join(', ') or 'all away' }}){% endif %}
             │ Daytime: {{ 'YES' if is_daytime_final else 'NO' }} (sun elevation: {{ sun_elevation }}°)
-            │ Sunrise: {{ (sunrise_with_offset | timestamp_local).strftime('%H:%M') }} (+{{ sunrise_offset_minutes }}min)
-            │ Sunset: {{ (sunset_with_offset | timestamp_local).strftime('%H:%M') }} ({{ sunset_offset_minutes }}min)
+            │ Sunrise: {{ (sunrise_with_offset | timestamp_custom('%H:%M', true)) }} (+{{ sunrise_offset_minutes }}min)
+            │ Sunset: {{ (sunset_with_offset | timestamp_custom('%H:%M', true)) }} ({{ sunset_offset_minutes }}min)
             │ Daytime Control: {{ daytime_control_mode | upper | replace('_', ' ') }}
             │ Prevent Auto-ON: {{ 'YES' if prevent_auto_on else 'NO' }} {% if prevent_auto_on %}({{ 'nobody home' if away_mode_active else 'daytime block' }}){% endif %}
             │ Illuminance: {{ illuminance }}lux (dark<{{ dark_threshold }}, bright≥{{ bright_threshold }})
