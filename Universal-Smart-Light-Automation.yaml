@@ -8,7 +8,7 @@ blueprint:
     
     ---
     
-    ## 🔄 Automatic Update Notifications (Optional)
+    ## 📄 Automatic Update Notifications (Optional)
     
     Get notified when new blueprint versions are available! To enable this feature:
     
@@ -756,7 +756,7 @@ blueprint:
       selector:
         boolean:
     enable_update_check:
-      name: "🔄 Check for Updates"
+      name: "📄 Check for Updates"
       description: >
         Enable this AFTER completing the setup steps shown at the top of this blueprint.
         
@@ -1103,6 +1103,19 @@ variables:
       999999
     {% endif %}
   
+  # Check if bed state changed recently (for trigger detection)
+  bed_state_changed_recently: >-
+    {% if has_bed_sensor and states[bed_occupied_helper] %}
+      {% set last_change = as_timestamp(states[bed_occupied_helper].last_changed, 0) %}
+      {% if last_change > 0 %}
+        {{ (current_time - last_change) < 2 }}
+      {% else %}
+        {{ false }}
+      {% endif %}
+    {% else %}
+      {{ false }}
+    {% endif %}
+  
   # Bed occupied with delay (only if occupied for longer than entry delay)
   bed_occupied_with_delay: >-
     {% if not has_bed_sensor %}
@@ -1374,7 +1387,8 @@ variables:
   is_illuminance_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == illuminance_sensor }}"
   is_periodic_trigger: "{{ trigger.platform == 'time_pattern' }}"
   is_sun_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == 'sun.sun' }}"
-  is_bed_trigger: "{{ has_bed_sensor and trigger.platform == 'state' and trigger.entity_id == bed_occupied_helper }}"
+  # FIXED: Bed triggers are now handled via periodic checks
+  is_bed_trigger: "{{ false }}"
   
   user_turned_on: "{{ is_primary_trigger and trigger.to_state.state == 'on' and trigger.from_state.state == 'off' }}"
   user_turned_off: "{{ is_primary_trigger and trigger.to_state.state == 'off' and trigger.from_state.state == 'on' }}"
@@ -1554,7 +1568,7 @@ variables:
     {% set timeout = (sensor_off_latency_seconds * effective_vacancy_multiplier) / 60 %}
     {{ [timeout | round(0, 'ceil'), 1] | max | int }}
 
-# Triggers
+# Triggers - FIXED to remove bed sensor trigger
 trigger:
   # State changes
   - platform: state
@@ -1581,12 +1595,9 @@ trigger:
     entity_id: sun.sun
     id: sun_change
     
-  # Bed sensor trigger (if configured)
-  - platform: state
-    entity_id: !input bed_occupied_helper
-    id: bed_change
+  # NOTE: Bed sensor trigger removed - handled via periodic check instead
     
-  # Periodic checks (handles optional entity monitoring)
+  # Periodic checks (handles optional entity monitoring including bed sensor)
   # Checks every minute for bed/tracker changes
   - platform: time_pattern
     minutes: "/1"
@@ -1715,11 +1726,11 @@ action:
   - condition: template
     value_template: "{{ trigger.id not in ['update_check', 'update_sensor_changed'] }}"
   
-  # NEW v3.8.5: Update bed state changed helper if bed trigger
+  # NEW v3.8.5: Update bed state changed helper if bed state changed recently
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ is_bed_trigger }}"
+            value_template: "{{ has_bed_sensor and bed_state_changed_recently }}"
         sequence:
           - service: input_datetime.set_datetime
             target:
@@ -2013,7 +2024,7 @@ action:
             │ Bed Allows Lights: {{ 'YES' if bed_allows_lights_on else 'NO (waiting)' }}
             │ Guest Mode: {{ 'ENABLED' if enable_guest_mode else 'DISABLED' }}
             │ Auto would turn OFF: {{ auto_would_turn_off }}
-            └──────────────────────────────────────────────────────────────
+            └──────────────────────────────────────────────────────────────────
   
   # Skip if automation is already active
   - condition: template
@@ -2090,7 +2101,7 @@ action:
                     ┌─ {{ room_name | upper }} OVERRIDE CLEARED ──────────────────────────────────
                     │ Reason: {{ override_clear_reason }}
                     │ Was active for: {{ override_active_minutes }} minutes
-                    └──────────────────────────────────────────────────────────────
+                    └──────────────────────────────────────────────────────────────────
           - delay:
               milliseconds: 100
           - service: automation.trigger
@@ -2134,13 +2145,13 @@ action:
                 data:
                   level: warning
                   message: >-
-                    ┌─ {{ room_name | upper }} MANUAL CHANGE DETECTED ────────────
+                    ┌─ {{ room_name | upper }} MANUAL CHANGE DETECTED ──────────────────────
                     │ Action: Turned {{ 'ON' if user_turned_on else 'OFF' }}
                     │ Entity: {{ trigger.entity_id }}
                     │ Auto would: {{ 'turn ON' if auto_would_turn_on else 'turn OFF' if auto_would_turn_off else 'do nothing (prevented by daytime control)' if prevent_auto_on else 'do nothing' }}
                     │ Illuminance: {{ illuminance }}lux
                     │ Presence: {{ 'YES' if someone_present else 'NO' }}
-                    └──────────────────────────────────────────────────────────────
+                    └──────────────────────────────────────────────────────────────────
           
           # Determine if override should be set or cleared
           - choose:
@@ -2418,12 +2429,12 @@ action:
                         data:
                           level: warning
                           message: >-
-                            ┌─ {{ room_name | upper }} LIGHTS TURNED ON ───────────────────────────
+                            ┌─ {{ room_name | upper }} LIGHTS TURNED ON ────────────────────────────────
                             │ Control Mode: {{ control_mode }}
                             │ Brightness: {{ adaptive_brightness }}%
                             │ Color Temp: {{ adaptive_color_temp }}K
                             │ Guest Mode: {{ 'YES' if enable_guest_mode else 'NO' }}
-                            └──────────────────────────────────────────────────────────────
+                            └──────────────────────────────────────────────────────────────────
               
               # Turn lights OFF (always allowed for energy saving, respects bed delay)
               - conditions:
@@ -2519,11 +2530,11 @@ action:
                         data:
                           level: warning
                           message: >-
-                            ┌─ {{ room_name | upper }} LIGHTS TURNED OFF ──────────────────────────
+                            ┌─ {{ room_name | upper }} LIGHTS TURNED OFF ───────────────────────────────
                             │ Control Mode: {{ control_mode }}
                             │ Reason: {% if turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}Bed occupied ({{ bed_state_seconds_ago }}s delay met){% else %}Room vacant{% endif %}
                             │ Fade Off: {{ effective_fade_off_time }}s
-                            └──────────────────────────────────────────────────────────────
+                            └──────────────────────────────────────────────────────────────────
               
               # Log when prevented from turning on (but not when lights already on) - with conditional logging
               - conditions:
@@ -2579,7 +2590,7 @@ action:
             ├─ Bed Status: {% if has_bed_sensor %}{{ 'ALLOWS ON' if bed_allows_lights_on else 'PREVENTS ON' }}{% else %}N/A{% endif %}
             ├─ Action Taken: {% if lights_on != (expand(light_entities) | selectattr('state', 'eq', 'on') | list | count > 0 if has_lights else is_state(light_switch, 'on') if has_switch else false) %}Lights {{ 'turned ON' if (expand(light_entities) | selectattr('state', 'eq', 'on') | list | count > 0 if has_lights else is_state(light_switch, 'on') if has_switch else false) else 'turned OFF' }}{% elif prevent_auto_on %}Auto-ON prevented{% elif not bed_allows_lights_on %}Waiting for bed delay{% else %}No change{% endif %}
             ├─ Execution Time: {{ ((now().timestamp() - action_start_time) * 1000) | round(1) }}ms
-            └─ Performance: {% if ((now().timestamp() - start_time) * 1000) < 100 %}⚡ Excellent{% elif ((now().timestamp() - start_time) * 1000) < 500 %}✓ Good{% else %}⚠️ Slow{% endif %}
+            └─ Performance: {% if ((now().timestamp() - start_time) * 1000) < 100 %}⚡ Excellent{% elif ((now().timestamp() - start_time) * 1000) < 500 %}✔ Good{% else %}⚠️ Slow{% endif %}
 
 mode: queued
 max: 2
