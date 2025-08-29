@@ -2352,16 +2352,20 @@ action:
                     target:
                       entity_id: "{{ light_switch }}"
           
-                  # Clear automation active flag
-                  - service: input_boolean.turn_off
-                    target:
-                      entity_id: "{{ automation_active_helper }}"
+          # Clear automation active flag
+          - service: input_boolean.turn_off
+            target:
+              entity_id: "{{ automation_active_helper }}"
               
-              # Automatic Turn OFF - No presence or bed occupied
-              - conditions:
-                  - condition: template
-                    value_template: "{{ lights_on and auto_would_turn_off }}"
-                sequence:
+      # Automatic Turn OFF - No presence or bed occupied
+      - conditions:
+          - condition: template
+            value_template: "{{ not manual_override }}"
+          - condition: template
+            value_template: "{{ lights_on }}"
+          - condition: template
+            value_template: "{{ auto_would_turn_off }}"
+        sequence:
                   - if:
                       - condition: template
                         value_template: "{{ enable_debug_logs }}"
@@ -2433,30 +2437,30 @@ action:
                     target:
                       entity_id: "{{ light_switch }}"
               
-                  # Clear flags
-                  - service: input_boolean.turn_off
-                    target:
-                      entity_id:
-                        - "{{ light_auto_on_helper }}"
-                        - "{{ automation_active_helper }}"
-                        - "{{ night_light_active_helper }}"
-              
-              # Log when prevented from turning on
-              - conditions:
-                  - condition: template
-                    value_template: "{{ prevent_auto_on and is_dark and someone_present and not bed_occupied and not lights_on }}"
-                sequence:
-                  - if:
-                      - condition: template
-                        value_template: "{{ enable_debug_logs }}"
-                    then:
-                      - service: system_log.write
-                        data:
-                          level: info
-                          message: >-
-                            [{{ room_name | upper }}] AUTO-ON PREVENTED
-                            │ Reason: {% if away_mode_active %}Block when away (nobody home during daytime){% elif no_daytime_lights_active %}Always block daytime mode{% else %}Unknown{% endif %}
-                            │ Would have turned on: Dark ({{ illuminance }}lux) and occupied
+          # Clear flags
+          - service: input_boolean.turn_off
+            target:
+              entity_id:
+                - "{{ light_auto_on_helper }}"
+                - "{{ automation_active_helper }}"
+                - "{{ night_light_active_helper }}"
+      
+      # Log when prevented from turning on
+      - conditions:
+          - condition: template
+            value_template: "{{ prevent_auto_on and is_dark and someone_present and not bed_occupied and not lights_on }}"
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ enable_debug_logs }}"
+            then:
+              - service: system_log.write
+                data:
+                  level: info
+                  message: >-
+                    [{{ room_name | upper }}] AUTO-ON PREVENTED
+                    │ Reason: {% if away_mode_active %}Block when away (nobody home during daytime){% elif no_daytime_lights_active %}Always block daytime mode{% else %}Unknown{% endif %}
+                    │ Would have turned on: Dark ({{ illuminance }}lux) and occupied
       
       # Update occupancy state helper
       - conditions:
