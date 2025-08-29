@@ -8,7 +8,7 @@ blueprint:
     
     ---
     
-    ## 🔄 Automatic Update Notifications (Optional)
+    ## 📄 Automatic Update Notifications (Optional)
     
     Get notified when new blueprint versions are available! To enable this feature:
     
@@ -182,99 +182,35 @@ blueprint:
 
   domain: automation
   input:
+    # ============================================
+    # SECTION 1: ROOM SETUP (ESSENTIAL)
+    # ============================================
     room_name:
-      name: Room Name
+      name: "1️⃣ ROOM SETUP - Room Name"
       description: >
-        Name of the room used throughout the automation for entity naming and logging.
+        **REQUIRED** - Name of the room for this automation.
+        
         You can use any capitalization here (e.g., "Office", "Living Room"), but note that
-        all helper entity IDs will be created in lowercase. For example, if you enter "Office",
-        the helpers should be created as "input_boolean.office_automation_active", etc.
-        Use underscores instead of spaces for multi-word names (e.g., "living_room").
+        all helper entity IDs must be created in lowercase.
+        
+        Examples:
+        • Single word: "Office", "Bedroom", "Kitchen"
+        • Multi-word (use underscores): "living_room", "master_bedroom"
+        
+        ⚠️ This name is used to find your helper entities, so it must match exactly!
       selector:
         text:
-    presence_pir_sensor:
-      name: PIR Motion Sensor
-      description: >
-        Motion sensor that detects immediate movement. This can be any PIR/motion sensor.
-        For Everything Presence devices, use binary_sensor.everything_presence_xxx_pir.
-        For standard motion sensors, use your motion sensor entity.
-      selector:
-        entity:
-          domain: binary_sensor
-          device_class: 
-            - motion
-            - occupancy
-            - presence
-    presence_mmwave_sensor:
-      name: Occupancy Sensor (Optional)
-      description: >
-        Secondary occupancy sensor that can detect presence even without movement.
-        If you only have one motion sensor, you can select the same entity again.
-        For Everything Presence devices, use binary_sensor.everything_presence_xxx_occupancy.
-        For mmWave/radar sensors, use your occupancy entity.
-      default: ""
-      selector:
-        entity:
-          domain: binary_sensor
-          device_class: 
-            - motion
-            - occupancy
-            - presence
-    illuminance_sensor:
-      name: Illuminance Sensor
-      description: >
-        Sensor that measures room brightness in lux (lumens per square meter).
-        For Everything Presence devices, use sensor.everything_presence_xxx_illuminance.
-        For other light sensors, select any sensor that provides light level readings.
-        If you don't have a light sensor, create an input_number helper set to 50 lux.
-      selector:
-        entity:
-          domain: 
-            - sensor
-            - input_number
-    light_switch:
-      name: Light Switch/Entity (Optional - see Light Entities below)
-      description: >
-        **OPTIONAL** - The switch that controls your lights.
-        
-        • **For smart switch + smart lights**: Select your wall switch here. The switch acts as a controller - physical presses send commands to control the smart lights (doesn't cut power).
-        
-        • **For smart lights only**: Leave this empty and use the Light Entities field below.
-        
-        • **For smart switch only (dumb lights)**: Select your smart switch here and leave Light Entities empty.
-        
-        Works with both switch.* entities (simple on/off) and light.* entities (supports brightness).
-      default: ""
-      selector:
-        entity:
-          domain: [switch, light]
-    light_entities:
-      name: Light Entities (Optional - for smart lights)
-      description: >
-        **OPTIONAL** - Select your smart light entities here.
-        
-        • **For smart lights**: Select one or more light entities to control directly.
-        
-        • **For smart switch + smart lights**: Select your smart lights here. The switch acts as a controller for these lights.
-        
-        • **For smart switch only**: Leave this empty.
-        
-        All light-specific features (brightness, color temperature, dimming) will be applied to these entities.
-      default: []
-      selector:
-        entity:
-          domain: light
-          multiple: true
+    
     control_mode:
-      name: Control Mode
+      name: "Control Mode - How Your Lights Are Set Up"
       description: >
-        Select how your lighting is set up:
+        **REQUIRED** - Select your lighting setup type:
         
-        **Smart Switch + Smart Lights** - You have a wall switch AND smart bulbs. The switch acts as a controller - pressing it sends commands to toggle the smart lights (doesn't cut power).
+        **Smart Switch + Smart Lights** - Wall switch controls smart bulbs (switch sends commands, doesn't cut power)
         
-        **Smart Lights Only** - You only have smart bulbs with no separate switch (e.g., lamps, integrated fixtures).
+        **Smart Lights Only** - Direct control of smart bulbs (lamps, integrated fixtures)
         
-        **Smart Switch Only** - You have a smart switch controlling regular (non-smart) bulbs.
+        **Smart Switch Only** - Smart switch controlling regular (non-smart) bulbs
       default: "switch_only"
       selector:
         select:
@@ -285,20 +221,321 @@ blueprint:
               value: "lights_only"
             - label: "Smart Switch Only"
               value: "switch_only"
-    daytime_control_mode:
-      name: Daytime Lighting Control
+    
+    light_switch:
+      name: "Light Switch Entity (Based on Control Mode)"
       description: >
-        How should automatic lighting work during daytime hours?
+        Configure based on your Control Mode selection:
         
-        **Always Allow** - Normal operation, lights turn on automatically when dark and occupied
+        • **Smart Switch + Smart Lights**: Select your wall switch (it acts as controller)
+        • **Smart Lights Only**: Leave empty
+        • **Smart Switch Only**: Select your smart switch
         
-        **Block When Away** - Energy saving mode - prevents auto-on during daytime when nobody's home
-        (Requires phone/device trackers to be configured below)
+        Works with both switch.* entities (on/off) and light.* entities (dimmable).
+      default: ""
+      selector:
+        entity:
+          domain: [switch, light]
+    
+    light_entities:
+      name: "Smart Light Entities (If Applicable)"
+      description: >
+        Configure based on your Control Mode selection:
         
-        **Always Block** - Maximum energy saving - never auto-on during daytime regardless of presence
-        (Perfect for rooms with good natural light)
+        • **Smart Switch + Smart Lights**: Select your smart bulbs
+        • **Smart Lights Only**: Select your smart bulbs
+        • **Smart Switch Only**: Leave empty
         
-        Note: Manual control and automatic turn-OFF always work regardless of this setting.
+        You can select multiple lights. Features like brightness and color temperature apply to these.
+      default: []
+      selector:
+        entity:
+          domain: light
+          multiple: true
+    
+    # ============================================
+    # SECTION 2: PRESENCE DETECTION (REQUIRED)
+    # ============================================
+    presence_pir_sensor:
+      name: "2️⃣ PRESENCE - Motion Sensor (PIR)"
+      description: >
+        **REQUIRED** - Primary motion detection sensor.
+        
+        This should be your fast-reacting motion sensor:
+        • PIR sensors (instant motion detection)
+        • Everything Presence PIR sensor
+        • Standard motion detectors
+        
+        This sensor triggers immediate response to movement.
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: 
+            - motion
+            - occupancy
+            - presence
+    
+    presence_mmwave_sensor:
+      name: "Occupancy Sensor (mmWave/Radar)"
+      description: >
+        **OPTIONAL** - Secondary sensor for detecting presence without movement.
+        
+        • mmWave/radar sensors (detects breathing, micro-movements)
+        • Everything Presence occupancy sensor
+        • Advanced presence detectors
+        
+        💡 TIP: If you only have one sensor, select the same sensor as above.
+      default: ""
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: 
+            - motion
+            - occupancy
+            - presence
+    
+    sensor_off_latency_entity:
+      name: "Sensor Off Latency Entity"
+      description: >
+        **OPTIONAL** - Entity that provides dynamic sensor timeout.
+        
+        For Everything Presence devices:
+        • Use: number.everything_presence_xxx_occupancy_off_latency
+        
+        For other sensors or if unsure:
+        • Leave blank and use the fixed value below
+      default: ""
+      selector:
+        entity:
+          domain: number
+          multiple: false
+    
+    fixed_latency_seconds:
+      name: "Fixed Sensor Off Latency"
+      description: >
+        How long after last detected motion before sensor reports "clear" (seconds).
+        
+        • Short (30s): Responsive but may turn off too soon
+        • **Medium (60s)**: Good balance for most rooms
+        • Long (120s): Prevents false offs but slower to react
+        
+        Only used if dynamic latency entity above is not set.
+      default: 60
+      selector:
+        number:
+          min: 10
+          max: 300
+          unit_of_measurement: sec
+          mode: slider
+          step: 10
+    
+    vacancy_timeout_multiplier:
+      name: "Vacancy Timeout Multiplier"
+      description: >
+        How many times the sensor latency before lights turn off.
+        
+        Example: 60s latency × 5 = 5 minutes before lights off
+        
+        • Low (3): Energy efficient, may turn off while still
+        • **Medium (5)**: Good balance for most rooms
+        • High (10): Rarely turns off accidentally
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 30
+          mode: slider
+          step: 1
+    
+    # ============================================
+    # SECTION 3: LIGHT LEVEL CONTROL
+    # ============================================
+    illuminance_sensor:
+      name: "3️⃣ LIGHT LEVELS - Illuminance Sensor"
+      description: >
+        **REQUIRED** - Sensor measuring room brightness (lux).
+        
+        • Everything Presence illuminance sensor
+        • Standalone lux meters
+        • Light level sensors
+        
+        💡 No sensor? Create an input_number helper set to 50 lux as placeholder.
+      selector:
+        entity:
+          domain: 
+            - sensor
+            - input_number
+    
+    dark_threshold:
+      name: "Dark Threshold (Lights Turn On)"
+      description: >
+        Below this lux level, room needs lights (when occupied).
+        
+        • Bedrooms: 20-30 lux
+        • Living areas: 30-40 lux
+        • Workspaces: 40-50 lux
+        
+        ⚠️ Must be lower than Bright Threshold!
+      default: 30
+      selector:
+        number:
+          min: 0
+          max: 499
+          unit_of_measurement: lux
+          mode: slider
+          step: 1
+    
+    bright_threshold:
+      name: "Bright Threshold (Natural Light Sufficient)"
+      description: >
+        Above this lux level, room has enough natural light.
+        
+        • Bedrooms: 150-200 lux
+        • Living areas: 200-250 lux
+        • Workspaces: 250-300 lux
+        
+        Also used for "clear override when turning off in bright room" feature.
+        
+        ⚠️ Must be higher than Dark Threshold by at least 10 lux!
+      default: 200
+      selector:
+        number:
+          min: 1
+          max: 500
+          unit_of_measurement: lux
+          mode: slider
+          step: 1
+    
+    extremely_dark_threshold:
+      name: "Extremely Dark Threshold"
+      description: >
+        Pitch black conditions (for aggressive dimming at night).
+        
+        • Typical: 1-5 lux
+        • Complete darkness: 0-2 lux
+        
+        Used for adaptive brightness in very dark conditions.
+      default: 3
+      selector:
+        number:
+          min: 0
+          max: 20
+          unit_of_measurement: lux
+          mode: slider
+          step: 0.1
+    
+    enable_illuminance_averaging:
+      name: "Enable Illuminance Averaging"
+      description: >
+        **RECOMMENDED** - Prevents rapid on/off from temporary light changes.
+        
+        Averages last 5 readings to filter out:
+        • Lightning flashes
+        • Camera flashes
+        • Passing clouds
+        • Sensor noise
+        
+        Adds stability with minimal delay.
+      default: true
+      selector:
+        boolean:
+    
+    # ============================================
+    # SECTION 4: MANUAL OVERRIDE BEHAVIOR
+    # ============================================
+    override_behavior:
+      name: "4️⃣ OVERRIDES - Override Clearing Method"
+      description: >
+        How should manual overrides be cleared?
+        
+        **Timeout Only** - Override lasts for set hours regardless of occupancy
+        • Best for: Home theaters, offices, bedrooms
+        • Full manual control until timeout
+        
+        **Vacancy Can Clear** - Override clears after extended vacancy OR timeout
+        • Best for: Bathrooms, hallways, common areas
+        • Prevents forgotten overrides
+      default: "timeout_only"
+      selector:
+        select:
+          options:
+            - label: "Timeout Only - Full manual control"
+              value: "timeout_only"
+            - label: "Vacancy Can Clear - Smarter but less control"
+              value: "vacancy_clear"
+    
+    override_timeout_hours:
+      name: "Override Timeout Duration"
+      description: >
+        How long manual overrides remain active (hours).
+        
+        • Short (1-2h): Quick return to automation
+        • **Medium (3-4h)**: Good for most rooms
+        • Long (6-8h): Extended manual control
+        
+        After this time, automation resumes control.
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 24
+          unit_of_measurement: hours
+          mode: slider
+          step: 0.5
+    
+    override_respect_presence:
+      name: "Respect Presence for Override Timeout"
+      description: >
+        **RECOMMENDED** - Override won't clear while you're still in the room.
+        
+        When enabled:
+        • Override timeout only clears when room is vacant
+        • Prevents lights suddenly changing while you're present
+        
+        Example: Watching a 4-hour movie with lights off won't suddenly turn on.
+      default: true
+      selector:
+        boolean:
+    
+    vacancy_clear_minutes:
+      name: "Vacancy Clear Time"
+      description: >
+        Minutes of vacancy before clearing override (if using "Vacancy Can Clear").
+        
+        • Short (15-30 min): Responsive clearing
+        • **Medium (45 min)**: Balanced
+        • Long (60+ min): Very conservative
+        
+        Only applies when Override Behavior is "Vacancy Can Clear".
+      default: 45
+      selector:
+        number:
+          min: 10
+          max: 120
+          unit_of_measurement: min
+          mode: slider
+          step: 5
+    
+    # ============================================
+    # SECTION 5: DAYTIME CONTROL (ENERGY SAVING)
+    # ============================================
+    daytime_control_mode:
+      name: "5️⃣ ENERGY - Daytime Lighting Control"
+      description: >
+        Control automatic lighting during daytime hours:
+        
+        **Always Allow** - Normal operation all day
+        • Lights turn on whenever dark and occupied
+        
+        **Block When Away** - Energy saving when nobody home
+        • No auto-on during daytime when house is empty
+        • Requires device trackers configured below
+        
+        **Always Block** - Maximum energy saving
+        • Never auto-on during daytime hours
+        • Perfect for rooms with good natural light
+        
+        📝 Manual control always works regardless of setting!
       default: "always_allow"
       selector:
         select:
@@ -309,36 +546,35 @@ blueprint:
               value: "block_when_away"
             - label: "Always Block - No daytime auto-on"
               value: "always_block"
+    
     presence_trackers:
-      name: Family Phones/Device Trackers (For "Block When Away" Mode)
+      name: "Device Trackers (For 'Block When Away')"
       description: >
-        **REQUIRED if using "Block When Away" mode** - Select all family member phones or device trackers.
+        **Required ONLY if using "Block When Away" mode**
         
-        The automation considers someone home if ANY of these devices are home.
-        
-        Examples:
+        Select all family phones/devices to track home presence:
         • device_tracker.johns_iphone
         • device_tracker.janes_android
-        • device_tracker.kids_phone
+        • Smart watches, car trackers, etc.
         
-        You can also use other trackers like car trackers, smart watches, etc.
+        Someone is home = ANY device is home
         
-        Leave empty if using "Always Allow" or "Always Block" modes.
+        💡 Leave empty for other modes.
       default: []
       selector:
         entity:
           domain: device_tracker
           multiple: true
+    
     sunrise_offset_minutes:
-      name: Sunrise Offset (minutes)
+      name: "Sunrise Offset"
       description: >
-        Minutes to add/subtract from sunrise to define start of "daytime".
+        Adjust when "daytime" starts relative to sunrise.
         
-        • **Positive values** (+30) = Daytime starts AFTER sunrise
-        • **Negative values** (-30) = Daytime starts BEFORE sunrise
-        • **Recommended**: +30 (daytime starts 30 min after sunrise when it's bright)
+        • **Positive (+30)**: Daytime starts 30 min AFTER sunrise
+        • **Negative (-30)**: Daytime starts 30 min BEFORE sunrise
         
-        This affects "Block When Away" and "Always Block" modes.
+        Recommended: +30 (wait until it's actually bright)
       default: 30
       selector:
         number:
@@ -347,16 +583,16 @@ blueprint:
           unit_of_measurement: min
           mode: slider
           step: 5
+    
     sunset_offset_minutes:
-      name: Sunset Offset (minutes)
+      name: "Sunset Offset"
       description: >
-        Minutes to add/subtract from sunset to define end of "daytime".
+        Adjust when "daytime" ends relative to sunset.
         
-        • **Positive values** (+30) = Daytime ends AFTER sunset
-        • **Negative values** (-30) = Daytime ends BEFORE sunset
-        • **Recommended**: -30 (daytime ends 30 min before sunset while still light)
+        • **Positive (+30)**: Daytime ends 30 min AFTER sunset
+        • **Negative (-30)**: Daytime ends 30 min BEFORE sunset
         
-        This affects "Block When Away" and "Always Block" modes.
+        Recommended: -30 (switch to night mode while still light)
       default: -30
       selector:
         number:
@@ -365,57 +601,57 @@ blueprint:
           unit_of_measurement: min
           mode: slider
           step: 5
+    
+    # ============================================
+    # SECTION 6: BEDROOM FEATURES (OPTIONAL)
+    # ============================================
     bed_occupied_helper:
-      name: Bed Sensor (Optional - For Bedrooms Only)
+      name: "6️⃣ BEDROOM - Bed Occupancy Sensor"
       description: >
-        **OPTIONAL - BEDROOM FEATURE**
+        **OPTIONAL - For bedrooms only**
         
-        For bedrooms only. Select your bed occupancy sensor if you have one.
-        This can be either a binary_sensor (like a bed presence sensor) or an input_boolean helper.
+        Select your bed presence sensor:
+        • binary_sensor.bed_presence_sensor
+        • input_boolean.bed_occupied
         
-        When this sensor is ON:
-        • Automatic lights will NOT turn on (prevents lights when in bed)
-        • Lights will turn OFF after your configured entry delay
+        When bed is occupied:
+        • Lights won't turn on automatically
+        • Lights can turn off when getting into bed
         
-        **Leave empty for non-bedroom spaces** - the automation works perfectly without it!
-        
-        Examples: 
-        - binary_sensor.bed_presence_sensor_master_bedroom
-        - input_boolean.master_bedroom_bed_occupied
+        💡 Leave empty for non-bedroom spaces.
       default: ""
       selector:
         entity:
           domain: 
             - binary_sensor
             - input_boolean
+    
     turn_off_when_bed_occupied:
-      name: Turn Off Lights When Getting Into Bed (Bedroom Feature)
+      name: "Auto-Off When Getting Into Bed"
       description: >
-        **BEDROOM FEATURE** - Only applies if bed sensor is configured above.
+        **Bedroom Feature** - Turn lights OFF when getting into bed?
         
-        When enabled, lights will automatically turn OFF after the entry delay when getting into bed.
-        This is perfect for bedtime - the lights turn off once you're settled in bed.
+        When enabled:
+        • Lights turn off after entry delay when bed occupied
+        • Perfect for bedtime routine
         
-        When disabled, bed occupancy only prevents lights from turning ON automatically.
-        
-        Has no effect if no bed sensor is configured.
+        When disabled:
+        • Bed occupancy only prevents auto-on
+        • You manually control lights from bed
       default: true
       selector:
         boolean:
+    
     bed_entry_delay_seconds:
-      name: Bed Entry Delay (seconds)
+      name: "Bed Entry Delay"
       description: >
-        **BEDROOM FEATURE** - Only applies if bed sensor is configured.
+        Seconds to wait after bed occupied before turning lights OFF.
         
-        How long to wait after bed sensor detects occupancy before turning lights OFF.
-        This prevents lights turning off when you just sit on the bed temporarily.
+        • Quick (10s): Immediate bedtime response
+        • **Balanced (30s)**: Prevents false triggers from sitting
+        • Conservative (60s): Very sure you're staying in bed
         
-        Examples:
-        • 10 seconds - Quick response for immediate bedtime
-        • 30 seconds - Balanced for most users
-        • 60 seconds - Conservative, ensures you're staying in bed
-        
-        Set to 0 for immediate response (not recommended).
+        Prevents lights turning off when just sitting on bed.
       default: 30
       selector:
         number:
@@ -424,20 +660,17 @@ blueprint:
           unit_of_measurement: sec
           mode: slider
           step: 5
+    
     bed_exit_delay_seconds:
-      name: Bed Exit Delay (seconds)
+      name: "Bed Exit Delay"
       description: >
-        **BEDROOM FEATURE** - Only applies if bed sensor is configured.
+        Seconds to wait after leaving bed before allowing lights ON.
         
-        How long to wait after bed sensor shows unoccupied before allowing lights to turn ON.
-        This prevents lights turning on when you roll over or briefly lose sensor contact.
+        • Quick (5s): Responsive when getting up
+        • **Balanced (15s)**: Filters movement in bed
+        • Conservative (30s): Prevents false triggers
         
-        Examples:
-        • 5 seconds - Quick response for getting up
-        • 15 seconds - Balanced for most users
-        • 30 seconds - Conservative, prevents false triggers from movement
-        
-        Set to 0 for immediate response (may cause false triggers).
+        Prevents lights from movement/rolling over.
       default: 15
       selector:
         number:
@@ -446,179 +679,48 @@ blueprint:
           unit_of_measurement: sec
           mode: slider
           step: 5
-    dark_threshold:
-      name: Dark Threshold
-      description: >
-        Lux threshold below which the room is considered dark enough to need lights.
-        When illuminance falls below this value AND someone is present, lights will
-        turn on automatically. Typically 20-50 lux for most rooms.
-        MUST be lower than bright threshold!
-      default: 30
-      selector:
-        number:
-          min: 0
-          max: 499
-          unit_of_measurement: lux
-          mode: slider
-          step: 1
-    bright_threshold:
-      name: Bright Threshold
-      description: >
-        Lux threshold above which the room is considered bright (has enough natural light).
-        This threshold is important for the "clear override when turning off lights in bright room"
-        feature. When you manually turn off lights in a bright room, the override is cleared.
-        Usually 150-300 lux is appropriate for most rooms.
-        MUST be higher than dark threshold!
-      default: 200
-      selector:
-        number:
-          min: 1
-          max: 500
-          unit_of_measurement: lux
-          mode: slider
-          step: 1
-    extremely_dark_threshold:
-      name: Extremely Dark Threshold
-      description: >
-        Lux threshold below which the room is considered extremely dark (pitch black).
-        This allows for more aggressive light control in very dark conditions.
-        Usually 1-5 lux for complete darkness.
-      default: 3
-      selector:
-        number:
-          min: 0
-          max: 20
-          unit_of_measurement: lux
-          mode: slider
-          step: 0.1
-    sensor_off_latency_entity:
-      name: Sensor Off Latency Entity (Optional)
-      description: >
-        Entity that provides the sensor's off latency/timeout value in seconds.
-        For Everything Presence devices, use number.everything_presence_xxx_occupancy_off_latency.
-        For other sensors, leave this blank and use the fixed value below.
-      default: ""
-      selector:
-        entity:
-          domain: number
-          multiple: false
-    fixed_latency_seconds:
-      name: Fixed Off Latency (seconds)
-      description: >
-        Fixed off latency value in seconds, used if sensor_off_latency_entity is not available.
-        This is how long after the last detected motion before the sensor reports "no presence".
-        Typically 30-120 seconds is appropriate, with 60 being a good default.
-      default: 60
-      selector:
-        number:
-          min: 10
-          max: 300
-          unit_of_measurement: sec
-          mode: slider
-          step: 10
-    vacancy_timeout_multiplier:
-      name: Vacancy Timeout Multiplier
-      description: >
-        Multiplier applied to the sensor off latency to determine true vacancy.
-        For example, with a 60s latency and 5× multiplier = 5 minute vacancy timeout.
-        Higher values prevent false offs but delay automatic actions.
-      default: 5
-      selector:
-        number:
-          min: 1
-          max: 30
-          mode: slider
-          step: 1
-    override_behavior:
-      name: Override Behavior
-      description: >
-        Choose how manual overrides should be handled:
-        
-        **Timeout Only** - Manual overrides are respected until the timeout expires. 
-        This gives you complete control - the room could be vacant for hours and your 
-        manual choice will be respected.
-        
-        **Vacancy Can Clear** - Manual overrides can be cleared by extended vacancy.
-        This prevents forgotten overrides from keeping lights off when you return to
-        a dark room hours later. More convenient but less absolute control.
-      default: "timeout_only"
-      selector:
-        select:
-          options:
-            - label: "Timeout Only - Full manual control"
-              value: "timeout_only"
-            - label: "Vacancy Can Clear - Smarter but less control"
-              value: "vacancy_clear"
-    vacancy_clear_minutes:
-      name: Vacancy Clear Time (minutes)
-      description: >
-        When using "Vacancy Can Clear" mode, how many minutes of vacancy before clearing overrides.
-        This is separate from the normal vacancy timeout - it's specifically for clearing manual overrides.
-        Typically 30-60 minutes to ensure the room is truly abandoned.
-        Only applies when Override Behavior is set to "Vacancy Can Clear".
-      default: 45
-      selector:
-        number:
-          min: 10
-          max: 120
-          unit_of_measurement: min
-          mode: slider
-          step: 5
-    override_timeout_hours:
-      name: Override Timeout Hours
-      description: >
-        Maximum hours a manual override will remain active before being automatically cleared.
-        This ensures forgotten overrides don't permanently disable automation.
-        Typical values are 2-4 hours for most rooms.
-      default: 3
-      selector:
-        number:
-          min: 1
-          max: 24
-          unit_of_measurement: hours
-          mode: slider
-          step: 0.5
-    override_respect_presence:
-      name: Respect Presence for Override Timeout
-      description: >
-        When enabled, manual override timeout will NOT clear while you're still in the room.
-        The override will only clear when:
-        • You leave the room (vacancy clear)
-        • You manually control the lights again
-        • The timeout expires AND the room is vacant
-        
-        This prevents lights from suddenly turning on after the timeout if you're still 
-        present and had manually turned them off.
-        
-        Example: You manually turn lights off to watch a movie. With this enabled, the 
-        lights won't suddenly turn on 3 hours later if you're still watching.
-      default: true
-      selector:
-        boolean:
+    
+    # ============================================
+    # SECTION 7: ADAPTIVE LIGHTING (OPTIONAL)
+    # ============================================
     enable_adaptive_brightness:
-      name: Enable Adaptive Brightness
+      name: "7️⃣ ADAPTIVE - Enable Adaptive Brightness"
       description: >
-        When enabled, automatically adjusts light brightness based on time of day and ambient light.
-        Only works with light.* entities that support brightness control.
-        Brightness will be lower at night and higher during the day.
+        **OPTIONAL** - Automatically adjust brightness by time and ambient light.
+        
+        • Dimmer at night for comfort
+        • Brighter during day for visibility
+        • Responds to ambient light levels
+        
+        Only works with dimmable lights.
       default: true
       selector:
         boolean:
+    
     enable_color_temperature:
-      name: Enable Color Temperature Control
+      name: "Enable Color Temperature Control"
       description: >
-        When enabled, automatically adjusts the color temperature of lights throughout the day.
-        Cool white during daytime for alertness, warm white in evening for relaxation.
-        Only works with lights that support color temperature control.
+        **OPTIONAL** - Adjust light color throughout the day.
+        
+        • Cool white (5000K) during daytime - alertness
+        • Warm white (3000K) at night - relaxation
+        • Smooth transitions between
+        
+        Only works with color temperature capable lights.
       default: true
       selector:
         boolean:
+    
     day_color_temp:
-      name: Daytime Color Temperature
+      name: "Daytime Color Temperature"
       description: >
-        Color temperature for daytime hours (9 AM - 5 PM).
-        Higher values = cooler/bluer light for alertness.
-        Typical range: 4000-6500K
+        Color for daytime hours (9 AM - 5 PM).
+        
+        • 4000K: Neutral white
+        • **5000K**: Cool daylight (recommended)
+        • 6500K: Very cool/blue
+        
+        Higher = cooler/bluer light for alertness.
       default: 5000
       selector:
         number:
@@ -627,12 +729,17 @@ blueprint:
           unit_of_measurement: K
           mode: slider
           step: 100
+    
     night_color_temp:
-      name: Nighttime Color Temperature
+      name: "Nighttime Color Temperature"
       description: >
-        Color temperature for nighttime hours.
-        Lower values = warmer/orange light for relaxation.
-        Typical range: 2700-3500K
+        Color for evening/night hours.
+        
+        • 2700K: Very warm/orange
+        • **3000K**: Warm white (recommended)
+        • 3500K: Soft white
+        
+        Lower = warmer/orange light for relaxation.
       default: 3000
       selector:
         number:
@@ -641,20 +748,27 @@ blueprint:
           unit_of_measurement: K
           mode: slider
           step: 100
+    
     enable_fade_on:
-      name: Enable Fade On
+      name: "Enable Fade On"
       description: >
-        When enabled, lights will fade in smoothly when turning on.
-        When disabled, lights will turn on instantly to the target brightness.
-        Only works with light entities that support transitions.
+        Lights fade in smoothly when turning on.
+        
+        • Creates pleasant transition
+        • Less jarring in dark rooms
+        • Professional feel
       default: true
       selector:
         boolean:
+    
     fade_on_time:
-      name: Fade On Time (seconds)
+      name: "Fade On Duration"
       description: >
-        How long the fade in should take when turning lights on.
-        Only applies if fade on is enabled and the light supports transitions.
+        Seconds for fade in effect.
+        
+        • Fast (0.5-1s): Quick but smooth
+        • **Medium (1.5s)**: Balanced
+        • Slow (2-3s): Gentle wake-up
       default: 1.5
       selector:
         number:
@@ -663,20 +777,27 @@ blueprint:
           unit_of_measurement: sec
           mode: slider
           step: 0.5
+    
     enable_fade_off:
-      name: Enable Fade Off
+      name: "Enable Fade Off"
       description: >
-        When enabled, lights will fade out smoothly when turning off.
-        When disabled, lights will turn off instantly.
-        Only works with light entities that support transitions.
+        Lights fade out smoothly when turning off.
+        
+        • Elegant transition
+        • Time to find your way
+        • Prevents harsh darkness
       default: true
       selector:
         boolean:
+    
     fade_off_time:
-      name: Fade Off Time (seconds)
+      name: "Fade Off Duration"
       description: >
-        How long the fade out should take when turning lights off.
-        Only applies if fade off is enabled and the light supports transitions.
+        Seconds for fade out effect.
+        
+        • Fast (0.5-1s): Quick transition
+        • **Medium (2s)**: Balanced
+        • Slow (3-5s): Gradual darkness
       default: 2.0
       selector:
         number:
@@ -685,35 +806,36 @@ blueprint:
           unit_of_measurement: sec
           mode: slider
           step: 0.5
-    enable_illuminance_averaging:
-      name: Enable Illuminance Averaging
-      description: >
-        When enabled, averages the last 5 light readings to prevent flapping.
-        Helps when clouds, shadows, or sensor noise cause rapid light changes.
-        Adds stability but slightly delays response to legitimate lighting changes.
-      default: true
-      selector:
-        boolean:
+    
+    # ============================================
+    # SECTION 8: GUEST MODE (OPTIONAL)
+    # ============================================
     enable_guest_mode:
-      name: Enable Guest Mode
+      name: "8️⃣ GUEST MODE - Enable Guest Mode"
       description: >
-        When enabled, the automation becomes more guest-friendly:
+        **OPTIONAL** - Special behavior for visitors.
+        
+        When enabled:
         • Lights stay on longer when vacant
         • Manual overrides last longer
-        • Less aggressive power saving
-        • More forgiving presence detection
-        • Bed occupancy features can be disabled (for bedrooms)
+        • Less aggressive automation
+        • Optional: ignore bed sensors
         
-        Perfect for visitors, parties, or service workers.
+        Perfect for parties, visitors, or service workers.
       default: false
       selector:
         boolean:
+    
     guest_vacancy_multiplier:
-      name: Guest Mode - Vacancy Multiplier
+      name: "Guest Vacancy Multiplier"
       description: >
-        In guest mode, how much longer to wait before turning off lights.
-        2.0 = twice as long, 3.0 = three times as long, etc.
-        Only applies when guest mode is enabled.
+        How much longer to wait before turning off (guest mode).
+        
+        • 2.0 = Twice as long
+        • **2.5 = 2.5× longer** (recommended)
+        • 3.0 = Three times as long
+        
+        Only applies when guest mode enabled.
       default: 2.5
       selector:
         number:
@@ -721,12 +843,17 @@ blueprint:
           max: 5.0
           mode: slider
           step: 0.5
+    
     guest_override_multiplier:
-      name: Guest Mode - Override Timeout Multiplier
+      name: "Guest Override Multiplier"
       description: >
-        In guest mode, how much longer manual overrides remain active.
-        2.0 = twice as long, 3.0 = three times as long, etc.
-        Only applies when guest mode is enabled.
+        How much longer manual overrides last (guest mode).
+        
+        • 1.5 = 50% longer
+        • **2.0 = Twice as long** (recommended)
+        • 3.0 = Three times as long
+        
+        Only applies when guest mode enabled.
       default: 2.0
       selector:
         number:
@@ -734,37 +861,51 @@ blueprint:
           max: 5.0
           mode: slider
           step: 0.5
+    
     guest_ignore_bed:
-      name: Guest Mode - Ignore Bed Sensor (Bedroom Feature)
+      name: "Ignore Bed Sensor in Guest Mode"
       description: >
-        **BEDROOM FEATURE** - Only applies if bed sensor is configured.
+        **Bedroom Feature** - Disable bed sensor when guests present.
         
-        When enabled, bed occupancy is ignored in guest mode.
-        Useful when guests are using the bedroom and you don't want
-        the bed sensor to affect lighting.
-        
-        Has no effect if no bed sensor is configured.
+        When enabled (recommended for guest bedrooms):
+        • Bed occupancy ignored
+        • Normal presence-based control
+        • Guests can use bed without affecting lights
       default: true
       selector:
         boolean:
+    
+    # ============================================
+    # SECTION 9: SYSTEM & DIAGNOSTICS
+    # ============================================
     enable_debug_logs:
-      name: Enable Debug Logs
+      name: "9️⃣ SYSTEM - Enable Debug Logging"
       description: >
-        Enable detailed debug logging in Home Assistant. These logs help understand
-        the automation's decisions and troubleshoot issues.
-        View logs in Settings → System → Logs, filtered for your room name.
+        **Troubleshooting Tool** - Detailed decision logs.
         
-        NOTE: Error logs are always shown for critical issues regardless of this setting.
+        When enabled:
+        • Shows why lights turned on/off
+        • Tracks override decisions
+        • Displays sensor states
+        
+        View in: Settings → System → Logs (filter by room name)
+        
+        ⚠️ Creates many log entries - disable when not troubleshooting!
       default: false
       selector:
         boolean:
+    
     enable_update_check:
-      name: "🔄 Check for Updates"
+      name: "🔄 Check for Blueprint Updates"
       description: >
-        Enable this AFTER completing the setup steps shown at the top of this blueprint.
+        **OPTIONAL** - Get notified about new versions.
         
-        If the sensor is configured correctly, you'll receive notifications when updates are available.
-        If not configured, this option does nothing (but won't cause any errors).
+        ⚠️ REQUIRES SETUP:
+        1. Add the sensor to configuration.yaml (see blueprint description)
+        2. Restart Home Assistant
+        3. Then enable this option
+        
+        You'll receive notifications when updates are available.
       default: false
       selector:
         boolean:
@@ -871,6 +1012,7 @@ variables:
   guest_override_multiplier: !input guest_override_multiplier
   guest_ignore_bed: !input guest_ignore_bed
   
+  # [REST OF THE VARIABLES SECTION REMAINS EXACTLY THE SAME]
   # Determine control entities based on mode
   has_switch: "{{ light_switch != '' and light_switch is not none }}"
   has_lights: "{{ light_entities | length > 0 }}"
@@ -1566,6 +1708,7 @@ variables:
     {% set timeout = (sensor_off_latency_seconds * effective_vacancy_multiplier) / 60 %}
     {{ [timeout | round(0, 'ceil'), 1] | max | int }}
 
+# [REST OF THE FILE REMAINS EXACTLY THE SAME - trigger, condition, and action sections]
 # Triggers - Universal handling with optional bed sensor
 trigger:
   # State changes
@@ -2006,7 +2149,7 @@ action:
             │ Guest Mode: {{ 'ENABLED' if enable_guest_mode else 'DISABLED' }}
             │ Auto would turn ON: {{ auto_would_turn_on }}
             │ Auto would turn OFF: {{ auto_would_turn_off }}
-            └─────────────────────────────────────────────────────────────────
+            └────────────────────────────────────────────────────────────────
   
   # Skip if automation is already active
   - condition: template
@@ -2083,7 +2226,7 @@ action:
                     ┌─ {{ room_name | upper }} OVERRIDE CLEARED ──────────────────────────────────────
                     │ Reason: {{ override_clear_reason }}
                     │ Was active for: {{ override_active_minutes }} minutes
-                    └─────────────────────────────────────────────────────────────────
+                    └────────────────────────────────────────────────────────────────
           - delay:
               milliseconds: 100
           - service: automation.trigger
@@ -2127,13 +2270,13 @@ action:
                 data:
                   level: warning
                   message: >-
-                    ┌─ {{ room_name | upper }} MANUAL CHANGE DETECTED ────────────────────────
+                    ┌─ {{ room_name | upper }} MANUAL CHANGE DETECTED ────────────────
                     │ Action: Turned {{ 'ON' if user_turned_on else 'OFF' }}
                     │ Entity: {{ trigger.entity_id }}
                     │ Auto would: {{ 'turn ON' if auto_would_turn_on else 'turn OFF' if auto_would_turn_off else 'do nothing (prevented by daytime control)' if prevent_auto_on else 'do nothing' }}
                     │ Illuminance: {{ illuminance }}lux
                     │ Presence: {{ 'YES' if someone_present else 'NO' }}
-                    └─────────────────────────────────────────────────────────────────
+                    └────────────────────────────────────────────────────────────────
           
           # Determine if override should be set or cleared
           - choose:
@@ -2423,13 +2566,13 @@ action:
                         data:
                           level: warning
                           message: >-
-                            ┌─ {{ room_name | upper }} LIGHTS TURNED ON ─────────────────────────────────────
+                            ┌─ {{ room_name | upper }} LIGHTS TURNED ON ──────────────────────────────────────
                             │ Control Mode: {{ control_mode }}
                             │ Brightness: {{ adaptive_brightness }}%
                             │ Color Temp: {{ adaptive_color_temp }}K
                             │ Guest Mode: {{ 'YES' if enable_guest_mode else 'NO' }}
                             │ Bed Exit Delay: {{ bed_exit_delay_seconds }}s{% if is_bed_trigger and not bed_occupied_raw %} (APPLIED ±5s){% endif %}
-                            └─────────────────────────────────────────────────────────────────
+                            └────────────────────────────────────────────────────────────────
               
               # Turn lights OFF (with simple bed delay)
               - conditions:
@@ -2545,12 +2688,12 @@ action:
                         data:
                           level: warning
                           message: >-
-                            ┌─ {{ room_name | upper }} LIGHTS TURNED OFF ────────────────────────────────────
+                            ┌─ {{ room_name | upper }} LIGHTS TURNED OFF ──────────────────────────────────────
                             │ Control Mode: {{ control_mode }}
                             │ Reason: {% if turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}Bed occupied{% else %}Room vacant{% endif %}
                             │ Fade Off: {{ effective_fade_off_time }}s
                             │ Bed Entry Delay: {{ bed_entry_delay_seconds }}s{% if is_bed_trigger and bed_occupied_raw %} (APPLIED ±5s){% endif %}
-                            └─────────────────────────────────────────────────────────────────
+                            └────────────────────────────────────────────────────────────────
               
               # Log when prevented from turning on (but not when lights already on) - with conditional logging
               - conditions:
