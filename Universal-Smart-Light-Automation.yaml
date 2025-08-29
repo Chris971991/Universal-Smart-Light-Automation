@@ -44,9 +44,9 @@ blueprint:
     
     • **False Trigger Prevention** - No more lights turning off when sitting on bed briefly!
     
-    ## IMPROVED IN v3.8.4: Accurate Sunrise/Sunset
+    ## FIXED IN v3.8.5: Accurate Sunrise/Sunset
     
-    • **Time-Based Calculation** - Uses actual sunrise/sunset times instead of sun elevation
+    • **Time-Based Calculation** - Uses actual sunrise/sunset times with proper offset handling
     
     • **Precise Offsets** - Your +30/-30 minute settings now work exactly as expected
     
@@ -766,7 +766,7 @@ blueprint:
       selector:
         boolean:
 
-# Variables and state management - ENHANCED v3.8.5 with bed sensor delays
+# Variables and state management - ENHANCED v3.8.5 with bed sensor delays and FIXED sunrise/sunset
 variables:
   # Store start time for performance monitoring
   start_time: "{{ now().timestamp() }}"
@@ -878,52 +878,116 @@ variables:
   trackers_required: "{{ daytime_control_mode == 'block_when_away' }}"
   trackers_missing: "{{ trackers_required and not has_presence_trackers }}"
   
-  # NEW v3.8.4: Proper time-based sunrise/sunset calculation
-  # Get today's sunrise and sunset times
+  # FIXED v3.8.5: Accurate sunrise/sunset calculation with proper offset handling
+  
+  # Get sun attributes
+  sun_next_rising: "{{ state_attr('sun.sun', 'next_rising') }}"
+  sun_next_setting: "{{ state_attr('sun.sun', 'next_setting') }}"
+  sun_elevation: "{{ state_attr('sun.sun', 'elevation') | float(0) }}"
+  
+  # Calculate today's actual sunrise (not next sunrise)
   sunrise_today: >-
-    {% set sunrise = state_attr('sun.sun', 'next_rising') %}
-    {% if sunrise %}
-      {{ as_timestamp(sunrise) | timestamp_local }}
+    {% set next_rising = sun_next_rising %}
+    {% if next_rising %}
+      {% set next_rising_time = as_timestamp(next_rising) %}
+      {% set now_time = now().timestamp() %}
+      {% set today_start = as_timestamp(today_at('00:00')) %}
+      {% set today_end = as_timestamp(today_at('23:59:59')) %}
+      
+      {# If next_rising is tomorrow, calculate today's sunrise by subtracting 24 hours #}
+      {% if next_rising_time > today_end %}
+        {% set today_sunrise = next_rising_time - 86400 %}
+      {% else %}
+        {# Next rising is still today (we're before sunrise) #}
+        {% set today_sunrise = next_rising_time %}
+      {% endif %}
+      
+      {{ today_sunrise }}
     {% else %}
-      {{ today_at('06:00') }}
+      {# Fallback to 6 AM if no sun data #}
+      {{ as_timestamp(today_at('06:00')) }}
     {% endif %}
   
+  # Calculate today's actual sunset (not next sunset)
   sunset_today: >-
-    {% set sunset = state_attr('sun.sun', 'next_setting') %}
-    {% if sunset %}
-      {{ as_timestamp(sunset) | timestamp_local }}
+    {% set next_setting = sun_next_setting %}
+    {% if next_setting %}
+      {% set next_setting_time = as_timestamp(next_setting) %}
+      {% set now_time = now().timestamp() %}
+      {% set today_start = as_timestamp(today_at('00:00')) %}
+      {% set today_end = as_timestamp(today_at('23:59:59')) %}
+      
+      {# If next_setting is tomorrow, calculate today's sunset by subtracting 24 hours #}
+      {% if next_setting_time > today_end %}
+        {% set today_sunset = next_setting_time - 86400 %}
+      {% elif next_setting_time < today_start %}
+        {# Next setting is yesterday (shouldn't happen but handle it) #}
+        {% set today_sunset = next_setting_time + 86400 %}
+      {% else %}
+        {# Next setting is still today #}
+        {% set today_sunset = next_setting_time %}
+      {% endif %}
+      
+      {{ today_sunset }}
     {% else %}
-      {{ today_at('18:00') }}
+      {# Fallback to 6 PM if no sun data #}
+      {{ as_timestamp(today_at('18:00')) }}
     {% endif %}
   
-  # Calculate sunrise and sunset with offsets (in seconds)
+  # Apply offsets to sunrise and sunset (positive = later, negative = earlier)
   sunrise_with_offset: >-
-    {% set sunrise_ts = as_timestamp(sunrise_today) %}
+    {% set sunrise_ts = sunrise_today | float %}
     {% set offset_seconds = (sunrise_offset_minutes | float(30)) * 60 %}
     {{ sunrise_ts + offset_seconds }}
   
   sunset_with_offset: >-
-    {% set sunset_ts = as_timestamp(sunset_today) %}
+    {% set sunset_ts = sunset_today | float %}
     {% set offset_seconds = (sunset_offset_minutes | float(-30)) * 60 %}
     {{ sunset_ts + offset_seconds }}
   
-  # Determine if it's daytime using actual times
+  # Determine if it's currently daytime (between sunrise+offset and sunset+offset)
   is_daytime: >-
     {% set now_ts = now().timestamp() %}
-    {% set sunrise_offset_ts = sunrise_with_offset %}
-    {% set sunset_offset_ts = sunset_with_offset %}
+    {% set sunrise_offset_ts = sunrise_with_offset | float %}
+    {% set sunset_offset_ts = sunset_with_offset | float %}
     
-    {# Handle edge case where sunset is before sunrise (shouldn't happen but be safe) #}
-    {% if sunset_offset_ts < sunrise_offset_ts %}
-      {# If sunset < sunrise, we're always in "night" #}
-      {{ false }}
+    {# Handle edge cases #}
+    {% if sunrise_offset_ts >= sunset_offset_ts %}
+      {# This shouldn't happen unless offsets are extreme #}
+      {# Use sun elevation as fallback #}
+      {{ sun_elevation > 0 }}
     {% else %}
       {# Normal case: daytime is between sunrise+offset and sunset+offset #}
       {{ sunrise_offset_ts <= now_ts < sunset_offset_ts }}
     {% endif %}
   
-  # Store sun elevation for logging purposes
-  sun_elevation: "{{ state_attr('sun.sun', 'elevation') | float(0) }}"
+  # Alternative method using sun elevation as validation
+  # (Sun is typically above horizon when elevation > -0.833 degrees, accounting for atmospheric refraction)
+  is_sun_up: "{{ sun_elevation > -0.833 }}"
+  
+  # Double-check daytime calculation with sun elevation for reliability
+  # If there's a major discrepancy, trust the sun elevation
+  is_daytime_verified: >-
+    {% set now_ts = now().timestamp() %}
+    {% set sunrise_offset_ts = sunrise_with_offset | float %}
+    {% set sunset_offset_ts = sunset_with_offset | float %}
+    {% set time_based_daytime = is_daytime %}
+    {% set elevation_based_daytime = is_sun_up %}
+    
+    {# If both agree, we're good #}
+    {% if time_based_daytime == elevation_based_daytime %}
+      {{ time_based_daytime }}
+    {# If they disagree, check if we're near sunrise/sunset (within 60 minutes) #}
+    {% elif (now_ts - sunrise_offset_ts) | abs < 3600 or (now_ts - sunset_offset_ts) | abs < 3600 %}
+      {# Near transition time, trust the time-based calculation with offsets #}
+      {{ time_based_daytime }}
+    {% else %}
+      {# Not near transition, something might be wrong, trust sun elevation #}
+      {{ elevation_based_daytime }}
+    {% endif %}
+  
+  # Use the verified daytime value for the rest of the automation
+  is_daytime_final: "{{ is_daytime_verified }}"
   
   # Check if anyone is home (via device trackers)
   someone_home: >-
@@ -937,11 +1001,11 @@ variables:
   # NEW v3.8.2: Unified daytime control logic
   # Away mode active (nobody home AND daytime AND mode set to block_when_away)
   away_mode_active: >-
-    {{ daytime_control_mode == 'block_when_away' and has_presence_trackers and not someone_home and is_daytime }}
+    {{ daytime_control_mode == 'block_when_away' and has_presence_trackers and not someone_home and is_daytime_final }}
   
   # No daytime lights mode active
   no_daytime_lights_active: >-
-    {{ daytime_control_mode == 'always_block' and is_daytime }}
+    {{ daytime_control_mode == 'always_block' and is_daytime_final }}
   
   # Should prevent automatic turn ON (but still allow OFF)
   prevent_auto_on: >-
@@ -1998,7 +2062,7 @@ action:
                   {% endif %}
                 {% endif %}
   
-  # ENHANCED v3.8.5: Debug with bed delay info (warning level)
+  # ENHANCED v3.8.5: Debug with bed delay info and sunrise/sunset times (warning level)
   - if:
       - condition: template
         value_template: "{{ enable_debug_logs }}"
@@ -2013,7 +2077,7 @@ action:
             │ Lights On: {{ 'YES' if lights_on else 'NO' }}
             │ Room Presence: {{ 'YES' if someone_present else 'NO' }} (PIR={{ pir_state }}/{{ pir_active }}, mmWave={{ mmwave_state }}/{{ mmwave_active }})
             │ Home Presence: {{ 'SOMEONE HOME' if someone_home else 'NOBODY HOME' }} {% if has_presence_trackers %}({{ expand(presence_trackers) | selectattr('state', 'eq', 'home') | map(attribute='name') | list | join(', ') or 'all away' }}){% endif %}
-            │ Daytime: {{ 'YES' if is_daytime else 'NO' }} (sun elevation: {{ sun_elevation }}°)
+            │ Daytime: {{ 'YES' if is_daytime_final else 'NO' }} (sun elevation: {{ sun_elevation }}°)
             │ Sunrise: {{ (sunrise_with_offset | timestamp_local).strftime('%H:%M') }} (+{{ sunrise_offset_minutes }}min)
             │ Sunset: {{ (sunset_with_offset | timestamp_local).strftime('%H:%M') }} ({{ sunset_offset_minutes }}min)
             │ Daytime Control: {{ daytime_control_mode | upper | replace('_', ' ') }}
@@ -2583,7 +2647,7 @@ action:
             [{{ room_name | upper }}] DECISION SUMMARY
             ├─ Room Presence: {{ 'YES' if someone_present else 'NO' }}
             ├─ Home Presence: {{ 'SOMEONE HOME' if someone_home else 'NOBODY HOME' }}
-            ├─ Daytime: {{ 'YES' if is_daytime else 'NO' }}
+            ├─ Daytime: {{ 'YES' if is_daytime_final else 'NO' }}
             ├─ Light Level: {{ illuminance }}lux ({{ 'Dark' if is_dark else 'Bright' if is_bright else 'Medium' }})
             ├─ Daytime Prevention: {{ 'ACTIVE' if prevent_auto_on else 'INACTIVE' }}
             ├─ Override: {{ 'ACTIVE' if manual_override else 'INACTIVE' }}
