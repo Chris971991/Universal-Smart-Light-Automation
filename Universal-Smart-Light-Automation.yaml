@@ -54,24 +54,23 @@ blueprint:
 
   domain: automation
   input:
-    # Core Room Configuration - Always visible at top
-    room_name:
-      name: Room Name *
-      description: >
-        **REQUIRED** - Name of the room for this automation.
-        
-        Use lowercase with underscores for multi-word names (e.g., "living_room", "master_bedroom").
-        
-        ⚠️ This name is used to find your helper entities, so it must match exactly!
-      selector:
-        text:
-    
     # Section 1: Room Setup
     room_setup:
       name: "Room Setup"
       icon: mdi:home-outline
       collapsed: true
       input:
+        room_name:
+          name: Room Name *
+          description: >
+            **REQUIRED** - Name of the room for this automation.
+            
+            Use lowercase with underscores for multi-word names (e.g., "living_room", "master_bedroom").
+            
+            ⚠️ This name is used to find your helper entities, so it must match exactly!
+          selector:
+            text:
+        
         control_mode:
           name: Control Mode *
           description: >
