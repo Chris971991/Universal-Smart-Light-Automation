@@ -36,92 +36,6 @@ blueprint:
     • **Offices** - Productivity-focused lighting
     • **Any Room** - Fully customizable behavior
     
-    ## FIXED IN v3.8.7: Universal Compatibility
-    
-    • **No More Setup Errors** - Works with or without bed sensor configured
-    
-    • **Smart Bed Detection** - Automatically detects bed state changes every 5 seconds
-    
-    • **True Universal Blueprint** - One blueprint for ALL rooms, no errors!
-    
-    ## FIXED IN v3.8.6: Bed Sensor Delays Actually Work!
-    
-    • **Entry Delay** - Properly waits X seconds after getting into bed before turning lights off
-    
-    • **Exit Delay** - Properly waits X seconds after getting out of bed before turning lights on
-    
-    • **Simple & Robust** - No complex state tracking, just simple delays that work
-    
-    ## FIXED IN v3.8.5: Accurate Sunrise/Sunset
-    
-    • **Time-Based Calculation** - Uses actual sunrise/sunset times with proper offset handling
-    
-    • **Precise Offsets** - Your +30/-30 minute settings now work exactly as expected
-    
-    • **All Latitudes** - Works accurately everywhere, from equator to polar regions
-    
-    ## IMPROVED IN v3.8.3: Smart Logging Control
-    
-    • **Smart Logging** - Error logs always visible for critical issues
-    
-    • **Clean Multi-Room** - Debug logs only show for rooms you're troubleshooting
-    
-    • **Better Performance** - Reduced log overhead when not debugging
-    
-    ## ENHANCED IN v3.8.2: Simplified Daytime Control
-    
-    • **Unified Daytime Mode** - Single setting replaces redundant Away/No-Daytime options
-    
-    • **Three Clear Choices** - Always Allow, Block When Away, or Always Block
-    
-    • **Smarter Configuration** - Cleaner, more intuitive settings
-    
-    For full version history and documentation, visit:
-    https://github.com/Chris971991/universal-smart-light-automation
-
-    ## Features
-
-    • **Automatic Control** - Turns lights on when dark and someone is present
-    
-    • **Energy Saving** - Turns lights off when room is vacant
-    
-    • **Smart Overrides** - Respects when you manually control lights
-    
-    • **Daytime Control** - Flexible options for daytime lighting behavior
-    
-    • **Bright Room Logic** - Clears overrides when turning off lights in well-lit rooms
-    
-    • **Timeout Protection** - Clears overrides after configurable timeout
-    
-    • **Vacancy Override** - Optional: Clear overrides after extended vacancy
-    
-    • **Adaptive Brightness** - Optional brightness adjustment based on time and ambient light
-    
-    • **Color Temperature Control** - Optional color temperature adjustment throughout the day
-    
-    • **Advanced Dimming** - Independent fade in/out control with separate timing
-    
-    • **Illuminance Averaging** - Prevents light flapping from momentary light changes
-    
-    • **Guest Mode** - Special behavior for when you have guests
-    
-    • **Human-Friendly** - Lights stay on while room is occupied, regardless of brightness
-    
-    • **Smart Bedroom Support** - Bed sensor with WORKING delays (fixed in v3.8.6)
-    
-    • **Bedtime Auto-Off** - Automatically turn lights off after delay when getting into bed
-
-    ## Compatible Sensors
-
-    This blueprint works with:
-    • Everything Presence One/Light sensors
-    • Standard motion/PIR sensors
-    • mmWave/radar presence sensors
-    • Any illuminance/light level sensor
-    • Bed occupancy sensors (optional for bedrooms)
-    • Phone/device trackers for home presence
-    • Or combinations of these sensors
-    
     ## REQUIRED HELPER ENTITIES
 
     Before using this blueprint, you MUST create these helper entities.
@@ -130,785 +44,595 @@ blueprint:
     the helpers should use "office" (lowercase) in their entity IDs.
     
     1. `input_boolean.[room_name]_automation_active`
-       - Tracks when automation is running an action
-       - Example: input_boolean.office_automation_active
-    
     2. `input_boolean.[room_name]_manual_override`
-       - Tracks when user has manually overridden automation
-       - Example: input_boolean.office_manual_override
-    
     3. `input_boolean.[room_name]_light_auto_on`
-       - Tracks if light was automatically turned on
-       - Example: input_boolean.office_light_auto_on
-    
-    4. `input_datetime.[room_name]_last_automation_action`
-       - Stores timestamp of last automation action
-       - MUST have both date AND time enabled
-       - Example: input_datetime.office_last_automation_action
-    
+    4. `input_datetime.[room_name]_last_automation_action` (MUST have both date AND time enabled)
     5. `input_boolean.[room_name]_occupancy_state`
-       - Tracks combined occupancy state from all sensors
-       - Example: input_boolean.office_occupancy_state
-    
     6. `input_text.[room_name]_illuminance_history`
-       - Stores recent illuminance readings for averaging
-       - Example: input_text.office_illuminance_history
     
     Replace [room_name] with your actual room name in LOWERCASE (e.g., office, bedroom, living_room)
-    
-    ## Daytime Control Modes
-    
-    **Always Allow**: Normal operation - lights turn on automatically when dark and occupied
-    
-    **Block When Away**: Energy saving mode - prevents automatic turn-on during daytime when nobody's home
-    
-    **Always Block**: Maximum energy saving - never turn on automatically during daytime hours
-    
-    All modes still allow:
-    • Manual control at any time
-    • Automatic turn-OFF for energy saving
-    • Nighttime operation
-    
-    ## Guest Mode
-    
-    When enabled, guest mode modifies the automation behavior to be more guest-friendly:
-    - Lights stay on longer when room is vacant
-    - Manual overrides last longer before timing out
-    - Less aggressive power saving
-    - More forgiving presence detection
-    - Bed occupancy features can be temporarily disabled (for bedrooms)
-    
-    Perfect for when you have visitors, parties, or service workers in your home.
 
   domain: automation
   input:
-    # ============================================
-    # SECTION 1: ROOM SETUP (ESSENTIAL)
-    # ============================================
+    # Core Room Configuration - Always visible at top
     room_name:
-      name: "1️⃣ ROOM SETUP - Room Name"
+      name: Room Name *
       description: >
         **REQUIRED** - Name of the room for this automation.
         
-        You can use any capitalization here (e.g., "Office", "Living Room"), but note that
-        all helper entity IDs must be created in lowercase.
-        
-        Examples:
-        • Single word: "Office", "Bedroom", "Kitchen"
-        • Multi-word (use underscores): "living_room", "master_bedroom"
+        Use lowercase with underscores for multi-word names (e.g., "living_room", "master_bedroom").
         
         ⚠️ This name is used to find your helper entities, so it must match exactly!
       selector:
         text:
     
-    control_mode:
-      name: "Control Mode - How Your Lights Are Set Up"
-      description: >
-        **REQUIRED** - Select your lighting setup type:
+    # Section 1: Room Setup
+    room_setup:
+      name: "Room Setup"
+      icon: mdi:home-outline
+      collapsed: true
+      input:
+        control_mode:
+          name: Control Mode *
+          description: >
+            **REQUIRED** - How are your lights set up?
+            
+            • **Smart Switch + Smart Lights** - Wall switch controls smart bulbs (doesn't cut power)
+            • **Smart Lights Only** - Direct control of smart bulbs (lamps, etc.)
+            • **Smart Switch Only** - Smart switch controlling regular bulbs
+          default: "switch_only"
+          selector:
+            select:
+              options:
+                - label: "Smart Switch + Smart Lights"
+                  value: "switch_and_lights"
+                - label: "Smart Lights Only"
+                  value: "lights_only"
+                - label: "Smart Switch Only"
+                  value: "switch_only"
         
-        **Smart Switch + Smart Lights** - Wall switch controls smart bulbs (switch sends commands, doesn't cut power)
+        light_switch:
+          name: Light Switch Entity
+          description: >
+            Based on your Control Mode:
+            • **Smart Switch + Smart Lights**: Select your wall switch
+            • **Smart Lights Only**: Leave empty
+            • **Smart Switch Only**: Select your smart switch
+          default: ""
+          selector:
+            entity:
+              domain: [switch, light]
         
-        **Smart Lights Only** - Direct control of smart bulbs (lamps, integrated fixtures)
-        
-        **Smart Switch Only** - Smart switch controlling regular (non-smart) bulbs
-      default: "switch_only"
-      selector:
-        select:
-          options:
-            - label: "Smart Switch + Smart Lights"
-              value: "switch_and_lights"
-            - label: "Smart Lights Only"
-              value: "lights_only"
-            - label: "Smart Switch Only"
-              value: "switch_only"
+        light_entities:
+          name: Smart Light Entities
+          description: >
+            Based on your Control Mode:
+            • **Smart Switch + Smart Lights**: Select your smart bulbs
+            • **Smart Lights Only**: Select your smart bulbs
+            • **Smart Switch Only**: Leave empty
+          default: []
+          selector:
+            entity:
+              domain: light
+              multiple: true
     
-    light_switch:
-      name: "Light Switch Entity (Based on Control Mode)"
-      description: >
-        Configure based on your Control Mode selection:
+    # Section 2: Presence Detection
+    presence_detection:
+      name: "Presence Detection"
+      icon: mdi:motion-sensor
+      collapsed: true
+      input:
+        presence_pir_sensor:
+          name: Motion Sensor (PIR) *
+          description: >
+            **REQUIRED** - Primary motion detection sensor.
+            • PIR sensors (instant motion detection)
+            • Everything Presence PIR sensor
+            • Standard motion detectors
+          selector:
+            entity:
+              domain: binary_sensor
+              device_class: 
+                - motion
+                - occupancy
+                - presence
         
-        • **Smart Switch + Smart Lights**: Select your wall switch (it acts as controller)
-        • **Smart Lights Only**: Leave empty
-        • **Smart Switch Only**: Select your smart switch
+        presence_mmwave_sensor:
+          name: Occupancy Sensor (mmWave/Radar)
+          description: >
+            **OPTIONAL** - Secondary sensor for stillness detection.
+            • mmWave/radar sensors
+            • Everything Presence occupancy sensor
+            
+            💡 TIP: If you only have one sensor, select the same sensor as above.
+          default: ""
+          selector:
+            entity:
+              domain: binary_sensor
+              device_class: 
+                - motion
+                - occupancy
+                - presence
         
-        Works with both switch.* entities (on/off) and light.* entities (dimmable).
-      default: ""
-      selector:
-        entity:
-          domain: [switch, light]
+        sensor_off_latency_entity:
+          name: Dynamic Sensor Off Latency
+          description: >
+            **OPTIONAL** - Entity providing dynamic timeout.
+            
+            For Everything Presence: number.everything_presence_xxx_occupancy_off_latency
+            
+            Leave blank to use fixed value below.
+          default: ""
+          selector:
+            entity:
+              domain: number
+              multiple: false
+        
+        fixed_latency_seconds:
+          name: Fixed Sensor Off Latency
+          description: >
+            Seconds before sensor reports "clear" after last motion.
+            • Short (30s): Responsive
+            • Medium (60s): Balanced
+            • Long (120s): Conservative
+          default: 60
+          selector:
+            number:
+              min: 10
+              max: 300
+              unit_of_measurement: sec
+              mode: slider
+              step: 10
+        
+        vacancy_timeout_multiplier:
+          name: Vacancy Timeout Multiplier
+          description: >
+            Multiplier for sensor latency before lights off.
+            
+            Example: 60s latency × 5 = 5 minutes
+          default: 5
+          selector:
+            number:
+              min: 1
+              max: 30
+              mode: slider
+              step: 1
     
-    light_entities:
-      name: "Smart Light Entities (If Applicable)"
-      description: >
-        Configure based on your Control Mode selection:
+    # Section 3: Light Level Control
+    light_level_control:
+      name: "Light Level Control"
+      icon: mdi:brightness-6
+      collapsed: true
+      input:
+        illuminance_sensor:
+          name: Illuminance Sensor *
+          description: >
+            **REQUIRED** - Sensor measuring room brightness in lux.
+            
+            💡 No sensor? Create an input_number helper set to 50 lux.
+          selector:
+            entity:
+              domain: 
+                - sensor
+                - input_number
         
-        • **Smart Switch + Smart Lights**: Select your smart bulbs
-        • **Smart Lights Only**: Select your smart bulbs
-        • **Smart Switch Only**: Leave empty
+        dark_threshold:
+          name: Dark Threshold (Lights ON)
+          description: >
+            Below this = lights needed when occupied.
+            • Bedrooms: 20-30 lux
+            • Living areas: 30-40 lux
+            • Workspaces: 40-50 lux
+          default: 30
+          selector:
+            number:
+              min: 0
+              max: 499
+              unit_of_measurement: lux
+              mode: slider
+              step: 1
         
-        You can select multiple lights. Features like brightness and color temperature apply to these.
-      default: []
-      selector:
-        entity:
-          domain: light
-          multiple: true
+        bright_threshold:
+          name: Bright Threshold (Natural Light OK)
+          description: >
+            Above this = enough natural light.
+            • Bedrooms: 150-200 lux
+            • Living areas: 200-250 lux
+            • Workspaces: 250-300 lux
+            
+            ⚠️ Must be at least 10 lux higher than Dark Threshold!
+          default: 200
+          selector:
+            number:
+              min: 1
+              max: 500
+              unit_of_measurement: lux
+              mode: slider
+              step: 1
+        
+        extremely_dark_threshold:
+          name: Extremely Dark Threshold
+          description: >
+            Pitch black conditions (1-5 lux typical).
+            Used for aggressive dimming at night.
+          default: 3
+          selector:
+            number:
+              min: 0
+              max: 20
+              unit_of_measurement: lux
+              mode: slider
+              step: 0.1
+        
+        enable_illuminance_averaging:
+          name: Enable Illuminance Averaging
+          description: >
+            **RECOMMENDED** - Filters out temporary light changes:
+            • Lightning flashes
+            • Camera flashes
+            • Passing clouds
+          default: true
+          selector:
+            boolean:
     
-    # ============================================
-    # SECTION 2: PRESENCE DETECTION (REQUIRED)
-    # ============================================
-    presence_pir_sensor:
-      name: "2️⃣ PRESENCE - Motion Sensor (PIR)"
-      description: >
-        **REQUIRED** - Primary motion detection sensor.
+    # Section 4: Manual Override Behavior
+    manual_override:
+      name: "Manual Override"
+      icon: mdi:hand-back-right
+      collapsed: true
+      input:
+        override_behavior:
+          name: Override Clearing Method
+          description: >
+            How should manual overrides be cleared?
+            
+            **Timeout Only** - Full control for set hours
+            **Vacancy Can Clear** - Also clears after extended vacancy
+          default: "timeout_only"
+          selector:
+            select:
+              options:
+                - label: "Timeout Only - Full manual control"
+                  value: "timeout_only"
+                - label: "Vacancy Can Clear - Smarter but less control"
+                  value: "vacancy_clear"
         
-        This should be your fast-reacting motion sensor:
-        • PIR sensors (instant motion detection)
-        • Everything Presence PIR sensor
-        • Standard motion detectors
+        override_timeout_hours:
+          name: Override Timeout Duration
+          description: >
+            Hours before override expires (1-24).
+          default: 3
+          selector:
+            number:
+              min: 1
+              max: 24
+              unit_of_measurement: hours
+              mode: slider
+              step: 0.5
         
-        This sensor triggers immediate response to movement.
-      selector:
-        entity:
-          domain: binary_sensor
-          device_class: 
-            - motion
-            - occupancy
-            - presence
+        override_respect_presence:
+          name: Respect Presence for Timeout
+          description: >
+            **RECOMMENDED** - Override won't clear while you're in the room.
+            Prevents lights changing during long activities (movies, etc.).
+          default: true
+          selector:
+            boolean:
+        
+        vacancy_clear_minutes:
+          name: Vacancy Clear Time
+          description: >
+            Minutes of vacancy before clearing override.
+            Only applies when using "Vacancy Can Clear".
+          default: 45
+          selector:
+            number:
+              min: 10
+              max: 120
+              unit_of_measurement: min
+              mode: slider
+              step: 5
     
-    presence_mmwave_sensor:
-      name: "Occupancy Sensor (mmWave/Radar)"
-      description: >
-        **OPTIONAL** - Secondary sensor for detecting presence without movement.
+    # Section 5: Daytime Control (Energy Saving)
+    daytime_control:
+      name: "Daytime Control"
+      icon: mdi:weather-sunny
+      collapsed: true
+      input:
+        daytime_control_mode:
+          name: Daytime Lighting Control
+          description: >
+            Control automatic lighting during daytime:
+            
+            **Always Allow** - Normal operation
+            **Block When Away** - No auto-on when nobody home
+            **Always Block** - Never auto-on during daytime
+          default: "always_allow"
+          selector:
+            select:
+              options:
+                - label: "Always Allow - Normal operation"
+                  value: "always_allow"
+                - label: "Block When Away - Save energy when gone"
+                  value: "block_when_away"
+                - label: "Always Block - No daytime auto-on"
+                  value: "always_block"
         
-        • mmWave/radar sensors (detects breathing, micro-movements)
-        • Everything Presence occupancy sensor
-        • Advanced presence detectors
+        presence_trackers:
+          name: Device Trackers
+          description: >
+            **Required for "Block When Away"**
+            
+            Select family phones/devices to track home presence.
+            Someone home = ANY device is home.
+          default: []
+          selector:
+            entity:
+              domain: device_tracker
+              multiple: true
         
-        💡 TIP: If you only have one sensor, select the same sensor as above.
-      default: ""
-      selector:
-        entity:
-          domain: binary_sensor
-          device_class: 
-            - motion
-            - occupancy
-            - presence
+        sunrise_offset_minutes:
+          name: Sunrise Offset
+          description: >
+            Adjust daytime start relative to sunrise.
+            • Positive (+30): Daytime starts AFTER sunrise
+            • Negative (-30): Daytime starts BEFORE sunrise
+          default: 30
+          selector:
+            number:
+              min: -120
+              max: 120
+              unit_of_measurement: min
+              mode: slider
+              step: 5
+        
+        sunset_offset_minutes:
+          name: Sunset Offset
+          description: >
+            Adjust daytime end relative to sunset.
+            • Positive (+30): Daytime ends AFTER sunset
+            • Negative (-30): Daytime ends BEFORE sunset
+          default: -30
+          selector:
+            number:
+              min: -120
+              max: 120
+              unit_of_measurement: min
+              mode: slider
+              step: 5
     
-    sensor_off_latency_entity:
-      name: "Sensor Off Latency Entity"
-      description: >
-        **OPTIONAL** - Entity that provides dynamic sensor timeout.
+    # Section 6: Bedroom Features
+    bedroom_features:
+      name: "Bedroom Features"
+      icon: mdi:bed
+      collapsed: true
+      input:
+        bed_occupied_helper:
+          name: Bed Occupancy Sensor
+          description: >
+            **OPTIONAL - For bedrooms only**
+            
+            When bed occupied:
+            • Lights won't turn on automatically
+            • Can turn off when getting into bed
+          default: ""
+          selector:
+            entity:
+              domain: 
+                - binary_sensor
+                - input_boolean
         
-        For Everything Presence devices:
-        • Use: number.everything_presence_xxx_occupancy_off_latency
+        turn_off_when_bed_occupied:
+          name: Auto-Off When Getting Into Bed
+          description: >
+            Turn lights OFF when getting into bed?
+            Perfect for bedtime routine.
+          default: true
+          selector:
+            boolean:
         
-        For other sensors or if unsure:
-        • Leave blank and use the fixed value below
-      default: ""
-      selector:
-        entity:
-          domain: number
-          multiple: false
+        bed_entry_delay_seconds:
+          name: Bed Entry Delay
+          description: >
+            Seconds before turning lights OFF when bed occupied.
+            Prevents false triggers from sitting.
+          default: 30
+          selector:
+            number:
+              min: 0
+              max: 300
+              unit_of_measurement: sec
+              mode: slider
+              step: 5
+        
+        bed_exit_delay_seconds:
+          name: Bed Exit Delay
+          description: >
+            Seconds before allowing lights ON after leaving bed.
+            Prevents triggers from rolling over.
+          default: 15
+          selector:
+            number:
+              min: 0
+              max: 120
+              unit_of_measurement: sec
+              mode: slider
+              step: 5
     
-    fixed_latency_seconds:
-      name: "Fixed Sensor Off Latency"
-      description: >
-        How long after last detected motion before sensor reports "clear" (seconds).
+    # Section 7: Adaptive Lighting
+    adaptive_lighting:
+      name: "Adaptive Lighting"
+      icon: mdi:theme-light-dark
+      collapsed: true
+      input:
+        enable_adaptive_brightness:
+          name: Enable Adaptive Brightness
+          description: >
+            Automatically adjust brightness by time and ambient light.
+            • Dimmer at night
+            • Brighter during day
+          default: true
+          selector:
+            boolean:
         
-        • Short (30s): Responsive but may turn off too soon
-        • **Medium (60s)**: Good balance for most rooms
-        • Long (120s): Prevents false offs but slower to react
+        enable_color_temperature:
+          name: Enable Color Temperature Control
+          description: >
+            Adjust light color throughout the day.
+            • Cool white daytime (alertness)
+            • Warm white nighttime (relaxation)
+          default: true
+          selector:
+            boolean:
         
-        Only used if dynamic latency entity above is not set.
-      default: 60
-      selector:
-        number:
-          min: 10
-          max: 300
-          unit_of_measurement: sec
-          mode: slider
-          step: 10
+        day_color_temp:
+          name: Daytime Color Temperature
+          description: >
+            Color for daytime hours (9 AM - 5 PM).
+            Higher = cooler/bluer light.
+          default: 5000
+          selector:
+            number:
+              min: 2700
+              max: 6500
+              unit_of_measurement: K
+              mode: slider
+              step: 100
+        
+        night_color_temp:
+          name: Nighttime Color Temperature
+          description: >
+            Color for evening/night hours.
+            Lower = warmer/orange light.
+          default: 3000
+          selector:
+            number:
+              min: 2700
+              max: 6500
+              unit_of_measurement: K
+              mode: slider
+              step: 100
+        
+        enable_fade_on:
+          name: Enable Fade On
+          description: >
+            Lights fade in smoothly when turning on.
+          default: true
+          selector:
+            boolean:
+        
+        fade_on_time:
+          name: Fade On Duration
+          description: >
+            Seconds for fade in effect.
+          default: 1.5
+          selector:
+            number:
+              min: 0.5
+              max: 10
+              unit_of_measurement: sec
+              mode: slider
+              step: 0.5
+        
+        enable_fade_off:
+          name: Enable Fade Off
+          description: >
+            Lights fade out smoothly when turning off.
+          default: true
+          selector:
+            boolean:
+        
+        fade_off_time:
+          name: Fade Off Duration
+          description: >
+            Seconds for fade out effect.
+          default: 2.0
+          selector:
+            number:
+              min: 0.5
+              max: 10
+              unit_of_measurement: sec
+              mode: slider
+              step: 0.5
     
-    vacancy_timeout_multiplier:
-      name: "Vacancy Timeout Multiplier"
-      description: >
-        How many times the sensor latency before lights turn off.
+    # Section 8: Guest Mode
+    guest_mode:
+      name: "Guest Mode"
+      icon: mdi:account-multiple
+      collapsed: true
+      input:
+        enable_guest_mode:
+          name: Enable Guest Mode
+          description: >
+            Special behavior for visitors:
+            • Lights stay on longer
+            • Extended overrides
+            • Less aggressive automation
+          default: false
+          selector:
+            boolean:
         
-        Example: 60s latency × 5 = 5 minutes before lights off
+        guest_vacancy_multiplier:
+          name: Guest Vacancy Multiplier
+          description: >
+            How much longer before turning off.
+            2.5 = 2.5× longer wait time.
+          default: 2.5
+          selector:
+            number:
+              min: 1.5
+              max: 5.0
+              mode: slider
+              step: 0.5
         
-        • Low (3): Energy efficient, may turn off while still
-        • **Medium (5)**: Good balance for most rooms
-        • High (10): Rarely turns off accidentally
-      default: 5
-      selector:
-        number:
-          min: 1
-          max: 30
-          mode: slider
-          step: 1
+        guest_override_multiplier:
+          name: Guest Override Multiplier
+          description: >
+            How much longer overrides last.
+            2.0 = Twice as long.
+          default: 2.0
+          selector:
+            number:
+              min: 1.5
+              max: 5.0
+              mode: slider
+              step: 0.5
+        
+        guest_ignore_bed:
+          name: Ignore Bed Sensor in Guest Mode
+          description: >
+            Disable bed sensor when guests present.
+            Useful for guest bedrooms.
+          default: true
+          selector:
+            boolean:
     
-    # ============================================
-    # SECTION 3: LIGHT LEVEL CONTROL
-    # ============================================
-    illuminance_sensor:
-      name: "3️⃣ LIGHT LEVELS - Illuminance Sensor"
-      description: >
-        **REQUIRED** - Sensor measuring room brightness (lux).
+    # Section 9: System & Diagnostics
+    system_diagnostics:
+      name: "System & Diagnostics"
+      icon: mdi:cog-outline
+      collapsed: true
+      input:
+        enable_debug_logs:
+          name: Enable Debug Logging
+          description: >
+            Detailed decision logs for troubleshooting.
+            View in: Settings → System → Logs
+            
+            ⚠️ Creates many log entries - disable when not needed!
+          default: false
+          selector:
+            boolean:
         
-        • Everything Presence illuminance sensor
-        • Standalone lux meters
-        • Light level sensors
-        
-        💡 No sensor? Create an input_number helper set to 50 lux as placeholder.
-      selector:
-        entity:
-          domain: 
-            - sensor
-            - input_number
-    
-    dark_threshold:
-      name: "Dark Threshold (Lights Turn On)"
-      description: >
-        Below this lux level, room needs lights (when occupied).
-        
-        • Bedrooms: 20-30 lux
-        • Living areas: 30-40 lux
-        • Workspaces: 40-50 lux
-        
-        ⚠️ Must be lower than Bright Threshold!
-      default: 30
-      selector:
-        number:
-          min: 0
-          max: 499
-          unit_of_measurement: lux
-          mode: slider
-          step: 1
-    
-    bright_threshold:
-      name: "Bright Threshold (Natural Light Sufficient)"
-      description: >
-        Above this lux level, room has enough natural light.
-        
-        • Bedrooms: 150-200 lux
-        • Living areas: 200-250 lux
-        • Workspaces: 250-300 lux
-        
-        Also used for "clear override when turning off in bright room" feature.
-        
-        ⚠️ Must be higher than Dark Threshold by at least 10 lux!
-      default: 200
-      selector:
-        number:
-          min: 1
-          max: 500
-          unit_of_measurement: lux
-          mode: slider
-          step: 1
-    
-    extremely_dark_threshold:
-      name: "Extremely Dark Threshold"
-      description: >
-        Pitch black conditions (for aggressive dimming at night).
-        
-        • Typical: 1-5 lux
-        • Complete darkness: 0-2 lux
-        
-        Used for adaptive brightness in very dark conditions.
-      default: 3
-      selector:
-        number:
-          min: 0
-          max: 20
-          unit_of_measurement: lux
-          mode: slider
-          step: 0.1
-    
-    enable_illuminance_averaging:
-      name: "Enable Illuminance Averaging"
-      description: >
-        **RECOMMENDED** - Prevents rapid on/off from temporary light changes.
-        
-        Averages last 5 readings to filter out:
-        • Lightning flashes
-        • Camera flashes
-        • Passing clouds
-        • Sensor noise
-        
-        Adds stability with minimal delay.
-      default: true
-      selector:
-        boolean:
-    
-    # ============================================
-    # SECTION 4: MANUAL OVERRIDE BEHAVIOR
-    # ============================================
-    override_behavior:
-      name: "4️⃣ OVERRIDES - Override Clearing Method"
-      description: >
-        How should manual overrides be cleared?
-        
-        **Timeout Only** - Override lasts for set hours regardless of occupancy
-        • Best for: Home theaters, offices, bedrooms
-        • Full manual control until timeout
-        
-        **Vacancy Can Clear** - Override clears after extended vacancy OR timeout
-        • Best for: Bathrooms, hallways, common areas
-        • Prevents forgotten overrides
-      default: "timeout_only"
-      selector:
-        select:
-          options:
-            - label: "Timeout Only - Full manual control"
-              value: "timeout_only"
-            - label: "Vacancy Can Clear - Smarter but less control"
-              value: "vacancy_clear"
-    
-    override_timeout_hours:
-      name: "Override Timeout Duration"
-      description: >
-        How long manual overrides remain active (hours).
-        
-        • Short (1-2h): Quick return to automation
-        • **Medium (3-4h)**: Good for most rooms
-        • Long (6-8h): Extended manual control
-        
-        After this time, automation resumes control.
-      default: 3
-      selector:
-        number:
-          min: 1
-          max: 24
-          unit_of_measurement: hours
-          mode: slider
-          step: 0.5
-    
-    override_respect_presence:
-      name: "Respect Presence for Override Timeout"
-      description: >
-        **RECOMMENDED** - Override won't clear while you're still in the room.
-        
-        When enabled:
-        • Override timeout only clears when room is vacant
-        • Prevents lights suddenly changing while you're present
-        
-        Example: Watching a 4-hour movie with lights off won't suddenly turn on.
-      default: true
-      selector:
-        boolean:
-    
-    vacancy_clear_minutes:
-      name: "Vacancy Clear Time"
-      description: >
-        Minutes of vacancy before clearing override (if using "Vacancy Can Clear").
-        
-        • Short (15-30 min): Responsive clearing
-        • **Medium (45 min)**: Balanced
-        • Long (60+ min): Very conservative
-        
-        Only applies when Override Behavior is "Vacancy Can Clear".
-      default: 45
-      selector:
-        number:
-          min: 10
-          max: 120
-          unit_of_measurement: min
-          mode: slider
-          step: 5
-    
-    # ============================================
-    # SECTION 5: DAYTIME CONTROL (ENERGY SAVING)
-    # ============================================
-    daytime_control_mode:
-      name: "5️⃣ ENERGY - Daytime Lighting Control"
-      description: >
-        Control automatic lighting during daytime hours:
-        
-        **Always Allow** - Normal operation all day
-        • Lights turn on whenever dark and occupied
-        
-        **Block When Away** - Energy saving when nobody home
-        • No auto-on during daytime when house is empty
-        • Requires device trackers configured below
-        
-        **Always Block** - Maximum energy saving
-        • Never auto-on during daytime hours
-        • Perfect for rooms with good natural light
-        
-        📝 Manual control always works regardless of setting!
-      default: "always_allow"
-      selector:
-        select:
-          options:
-            - label: "Always Allow - Normal operation"
-              value: "always_allow"
-            - label: "Block When Away - Save energy when gone"
-              value: "block_when_away"
-            - label: "Always Block - No daytime auto-on"
-              value: "always_block"
-    
-    presence_trackers:
-      name: "Device Trackers (For 'Block When Away')"
-      description: >
-        **Required ONLY if using "Block When Away" mode**
-        
-        Select all family phones/devices to track home presence:
-        • device_tracker.johns_iphone
-        • device_tracker.janes_android
-        • Smart watches, car trackers, etc.
-        
-        Someone is home = ANY device is home
-        
-        💡 Leave empty for other modes.
-      default: []
-      selector:
-        entity:
-          domain: device_tracker
-          multiple: true
-    
-    sunrise_offset_minutes:
-      name: "Sunrise Offset"
-      description: >
-        Adjust when "daytime" starts relative to sunrise.
-        
-        • **Positive (+30)**: Daytime starts 30 min AFTER sunrise
-        • **Negative (-30)**: Daytime starts 30 min BEFORE sunrise
-        
-        Recommended: +30 (wait until it's actually bright)
-      default: 30
-      selector:
-        number:
-          min: -120
-          max: 120
-          unit_of_measurement: min
-          mode: slider
-          step: 5
-    
-    sunset_offset_minutes:
-      name: "Sunset Offset"
-      description: >
-        Adjust when "daytime" ends relative to sunset.
-        
-        • **Positive (+30)**: Daytime ends 30 min AFTER sunset
-        • **Negative (-30)**: Daytime ends 30 min BEFORE sunset
-        
-        Recommended: -30 (switch to night mode while still light)
-      default: -30
-      selector:
-        number:
-          min: -120
-          max: 120
-          unit_of_measurement: min
-          mode: slider
-          step: 5
-    
-    # ============================================
-    # SECTION 6: BEDROOM FEATURES (OPTIONAL)
-    # ============================================
-    bed_occupied_helper:
-      name: "6️⃣ BEDROOM - Bed Occupancy Sensor"
-      description: >
-        **OPTIONAL - For bedrooms only**
-        
-        Select your bed presence sensor:
-        • binary_sensor.bed_presence_sensor
-        • input_boolean.bed_occupied
-        
-        When bed is occupied:
-        • Lights won't turn on automatically
-        • Lights can turn off when getting into bed
-        
-        💡 Leave empty for non-bedroom spaces.
-      default: ""
-      selector:
-        entity:
-          domain: 
-            - binary_sensor
-            - input_boolean
-    
-    turn_off_when_bed_occupied:
-      name: "Auto-Off When Getting Into Bed"
-      description: >
-        **Bedroom Feature** - Turn lights OFF when getting into bed?
-        
-        When enabled:
-        • Lights turn off after entry delay when bed occupied
-        • Perfect for bedtime routine
-        
-        When disabled:
-        • Bed occupancy only prevents auto-on
-        • You manually control lights from bed
-      default: true
-      selector:
-        boolean:
-    
-    bed_entry_delay_seconds:
-      name: "Bed Entry Delay"
-      description: >
-        Seconds to wait after bed occupied before turning lights OFF.
-        
-        • Quick (10s): Immediate bedtime response
-        • **Balanced (30s)**: Prevents false triggers from sitting
-        • Conservative (60s): Very sure you're staying in bed
-        
-        Prevents lights turning off when just sitting on bed.
-      default: 30
-      selector:
-        number:
-          min: 0
-          max: 300
-          unit_of_measurement: sec
-          mode: slider
-          step: 5
-    
-    bed_exit_delay_seconds:
-      name: "Bed Exit Delay"
-      description: >
-        Seconds to wait after leaving bed before allowing lights ON.
-        
-        • Quick (5s): Responsive when getting up
-        • **Balanced (15s)**: Filters movement in bed
-        • Conservative (30s): Prevents false triggers
-        
-        Prevents lights from movement/rolling over.
-      default: 15
-      selector:
-        number:
-          min: 0
-          max: 120
-          unit_of_measurement: sec
-          mode: slider
-          step: 5
-    
-    # ============================================
-    # SECTION 7: ADAPTIVE LIGHTING (OPTIONAL)
-    # ============================================
-    enable_adaptive_brightness:
-      name: "7️⃣ ADAPTIVE - Enable Adaptive Brightness"
-      description: >
-        **OPTIONAL** - Automatically adjust brightness by time and ambient light.
-        
-        • Dimmer at night for comfort
-        • Brighter during day for visibility
-        • Responds to ambient light levels
-        
-        Only works with dimmable lights.
-      default: true
-      selector:
-        boolean:
-    
-    enable_color_temperature:
-      name: "Enable Color Temperature Control"
-      description: >
-        **OPTIONAL** - Adjust light color throughout the day.
-        
-        • Cool white (5000K) during daytime - alertness
-        • Warm white (3000K) at night - relaxation
-        • Smooth transitions between
-        
-        Only works with color temperature capable lights.
-      default: true
-      selector:
-        boolean:
-    
-    day_color_temp:
-      name: "Daytime Color Temperature"
-      description: >
-        Color for daytime hours (9 AM - 5 PM).
-        
-        • 4000K: Neutral white
-        • **5000K**: Cool daylight (recommended)
-        • 6500K: Very cool/blue
-        
-        Higher = cooler/bluer light for alertness.
-      default: 5000
-      selector:
-        number:
-          min: 2700
-          max: 6500
-          unit_of_measurement: K
-          mode: slider
-          step: 100
-    
-    night_color_temp:
-      name: "Nighttime Color Temperature"
-      description: >
-        Color for evening/night hours.
-        
-        • 2700K: Very warm/orange
-        • **3000K**: Warm white (recommended)
-        • 3500K: Soft white
-        
-        Lower = warmer/orange light for relaxation.
-      default: 3000
-      selector:
-        number:
-          min: 2700
-          max: 6500
-          unit_of_measurement: K
-          mode: slider
-          step: 100
-    
-    enable_fade_on:
-      name: "Enable Fade On"
-      description: >
-        Lights fade in smoothly when turning on.
-        
-        • Creates pleasant transition
-        • Less jarring in dark rooms
-        • Professional feel
-      default: true
-      selector:
-        boolean:
-    
-    fade_on_time:
-      name: "Fade On Duration"
-      description: >
-        Seconds for fade in effect.
-        
-        • Fast (0.5-1s): Quick but smooth
-        • **Medium (1.5s)**: Balanced
-        • Slow (2-3s): Gentle wake-up
-      default: 1.5
-      selector:
-        number:
-          min: 0.5
-          max: 10
-          unit_of_measurement: sec
-          mode: slider
-          step: 0.5
-    
-    enable_fade_off:
-      name: "Enable Fade Off"
-      description: >
-        Lights fade out smoothly when turning off.
-        
-        • Elegant transition
-        • Time to find your way
-        • Prevents harsh darkness
-      default: true
-      selector:
-        boolean:
-    
-    fade_off_time:
-      name: "Fade Off Duration"
-      description: >
-        Seconds for fade out effect.
-        
-        • Fast (0.5-1s): Quick transition
-        • **Medium (2s)**: Balanced
-        • Slow (3-5s): Gradual darkness
-      default: 2.0
-      selector:
-        number:
-          min: 0.5
-          max: 10
-          unit_of_measurement: sec
-          mode: slider
-          step: 0.5
-    
-    # ============================================
-    # SECTION 8: GUEST MODE (OPTIONAL)
-    # ============================================
-    enable_guest_mode:
-      name: "8️⃣ GUEST MODE - Enable Guest Mode"
-      description: >
-        **OPTIONAL** - Special behavior for visitors.
-        
-        When enabled:
-        • Lights stay on longer when vacant
-        • Manual overrides last longer
-        • Less aggressive automation
-        • Optional: ignore bed sensors
-        
-        Perfect for parties, visitors, or service workers.
-      default: false
-      selector:
-        boolean:
-    
-    guest_vacancy_multiplier:
-      name: "Guest Vacancy Multiplier"
-      description: >
-        How much longer to wait before turning off (guest mode).
-        
-        • 2.0 = Twice as long
-        • **2.5 = 2.5× longer** (recommended)
-        • 3.0 = Three times as long
-        
-        Only applies when guest mode enabled.
-      default: 2.5
-      selector:
-        number:
-          min: 1.5
-          max: 5.0
-          mode: slider
-          step: 0.5
-    
-    guest_override_multiplier:
-      name: "Guest Override Multiplier"
-      description: >
-        How much longer manual overrides last (guest mode).
-        
-        • 1.5 = 50% longer
-        • **2.0 = Twice as long** (recommended)
-        • 3.0 = Three times as long
-        
-        Only applies when guest mode enabled.
-      default: 2.0
-      selector:
-        number:
-          min: 1.5
-          max: 5.0
-          mode: slider
-          step: 0.5
-    
-    guest_ignore_bed:
-      name: "Ignore Bed Sensor in Guest Mode"
-      description: >
-        **Bedroom Feature** - Disable bed sensor when guests present.
-        
-        When enabled (recommended for guest bedrooms):
-        • Bed occupancy ignored
-        • Normal presence-based control
-        • Guests can use bed without affecting lights
-      default: true
-      selector:
-        boolean:
-    
-    # ============================================
-    # SECTION 9: SYSTEM & DIAGNOSTICS
-    # ============================================
-    enable_debug_logs:
-      name: "9️⃣ SYSTEM - Enable Debug Logging"
-      description: >
-        **Troubleshooting Tool** - Detailed decision logs.
-        
-        When enabled:
-        • Shows why lights turned on/off
-        • Tracks override decisions
-        • Displays sensor states
-        
-        View in: Settings → System → Logs (filter by room name)
-        
-        ⚠️ Creates many log entries - disable when not troubleshooting!
-      default: false
-      selector:
-        boolean:
-    
-    enable_update_check:
-      name: "🔄 Check for Blueprint Updates"
-      description: >
-        **OPTIONAL** - Get notified about new versions.
-        
-        ⚠️ REQUIRES SETUP:
-        1. Add the sensor to configuration.yaml (see blueprint description)
-        2. Restart Home Assistant
-        3. Then enable this option
-        
-        You'll receive notifications when updates are available.
-      default: false
-      selector:
-        boolean:
+        enable_update_check:
+          name: Check for Blueprint Updates
+          description: >
+            Get notified about new versions.
+            
+            ⚠️ Requires sensor setup (see blueprint description).
+          default: false
+          selector:
+            boolean:
 
 # Variables and state management - SIMPLIFIED v3.8.7 with universal bed handling
 variables:
@@ -1012,7 +736,7 @@ variables:
   guest_override_multiplier: !input guest_override_multiplier
   guest_ignore_bed: !input guest_ignore_bed
   
-  # [REST OF THE VARIABLES SECTION REMAINS EXACTLY THE SAME]
+  # [REST OF THE VARIABLES SECTION REMAINS EXACTLY THE SAME FROM LINE 414 ONWARDS]
   # Determine control entities based on mode
   has_switch: "{{ light_switch != '' and light_switch is not none }}"
   has_lights: "{{ light_entities | length > 0 }}"
