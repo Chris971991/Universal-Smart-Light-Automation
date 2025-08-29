@@ -1,7 +1,7 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - Enhanced v3.8.6
+  name: Universal Smart Presence Lighting Control - Enhanced v3.8.7
   description: >
-    # Universal Smart Presence Lighting Control - Enhanced Version 3.8.6
+    # Universal Smart Presence Lighting Control - Enhanced Version 3.8.7
     
     Intelligently manages your lighting based on room occupancy, light levels, and manual controls.
     Works perfectly for ANY room - bedrooms, offices, living rooms, kitchens, bathrooms, etc.
@@ -31,10 +31,18 @@ blueprint:
     ## 🎯 UNIVERSAL DESIGN
     
     This single blueprint works for ALL room types:
-    • **Bedrooms** - Full bed sensor integration with WORKING delays (v3.8.6)
+    • **Bedrooms** - Full bed sensor integration with WORKING delays (v3.8.7)
     • **Living Areas** - Standard presence-based control
     • **Offices** - Productivity-focused lighting
     • **Any Room** - Fully customizable behavior
+    
+    ## FIXED IN v3.8.7: Universal Compatibility
+    
+    • **No More Setup Errors** - Works with or without bed sensor configured
+    
+    • **Smart Bed Detection** - Automatically detects bed state changes every 5 seconds
+    
+    • **True Universal Blueprint** - One blueprint for ALL rooms, no errors!
     
     ## FIXED IN v3.8.6: Bed Sensor Delays Actually Work!
     
@@ -761,13 +769,13 @@ blueprint:
       selector:
         boolean:
 
-# Variables and state management - SIMPLIFIED v3.8.6 with working bed delays
+# Variables and state management - SIMPLIFIED v3.8.7 with universal bed handling
 variables:
   # Store start time for performance monitoring
   start_time: "{{ now().timestamp() }}"
   
   # Version checking
-  blueprint_version: "3.8.6"  # UPDATE THIS WITH EACH RELEASE
+  blueprint_version: "3.8.7"  # UPDATE THIS WITH EACH RELEASE
   enable_update_check: !input enable_update_check
   update_sensor: "sensor.universal_lighting_updates"
   
@@ -1361,8 +1369,22 @@ variables:
   is_illuminance_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == illuminance_sensor }}"
   is_periodic_trigger: "{{ trigger.platform == 'time_pattern' }}"
   is_sun_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == 'sun.sun' }}"
-  # FIXED v3.8.6: Bed trigger properly detected
-  is_bed_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == bed_occupied_helper }}"
+  # FIXED v3.8.6: Bed trigger detected via state change check
+  is_bed_trigger: >-
+    {% if has_bed_sensor and is_periodic_trigger %}
+      {% if states[bed_occupied_helper] %}
+        {% set last_change = as_timestamp(states[bed_occupied_helper].last_changed, 0) %}
+        {% if last_change > 0 %}
+          {{ (now().timestamp() - last_change) < 5 }}
+        {% else %}
+          {{ false }}
+        {% endif %}
+      {% else %}
+        {{ false }}
+      {% endif %}
+    {% else %}
+      {{ false }}
+    {% endif %}
   
   user_turned_on: "{{ is_primary_trigger and trigger.to_state.state == 'on' and trigger.from_state.state == 'off' }}"
   user_turned_off: "{{ is_primary_trigger and trigger.to_state.state == 'off' and trigger.from_state.state == 'on' }}"
@@ -1544,7 +1566,7 @@ variables:
     {% set timeout = (sensor_off_latency_seconds * effective_vacancy_multiplier) / 60 %}
     {{ [timeout | round(0, 'ceil'), 1] | max | int }}
 
-# Triggers - RESTORED bed sensor trigger for proper delay handling
+# Triggers - Universal handling with optional bed sensor
 trigger:
   # State changes
   - platform: state
@@ -1571,15 +1593,13 @@ trigger:
     entity_id: sun.sun
     id: sun_change
     
-  # RESTORED: Bed sensor trigger for immediate response to bed state changes
-  - platform: state
-    entity_id: !input bed_occupied_helper
-    id: bed_change
-    
-  # Periodic checks for other monitoring
+  # NOTE: Bed sensor handled via periodic check to avoid empty entity errors
+  # Periodic checks (handles bed sensor and other monitoring)
   - platform: time_pattern
-    minutes: "/1"
+    seconds: "/5"  # Check every 5 seconds for responsive bed delays
     id: periodic_check
+  
+  # Check for updates periodically
   
   # Check for updates periodically
   - platform: time
@@ -1982,7 +2002,7 @@ action:
             │ Prevent Auto-ON: {{ 'YES' if prevent_auto_on else 'NO' }} {% if prevent_auto_on %}({{ 'nobody home' if away_mode_active else 'daytime block' }}){% endif %}
             │ Illuminance: {{ illuminance }}lux (dark<{{ dark_threshold }}, bright≥{{ bright_threshold }})
             │ Override: {{ 'ACTIVE' if manual_override else 'INACTIVE' }}
-            │ Bed: {% if has_bed_sensor %}{{ 'OCCUPIED' if bed_occupied_raw else 'EMPTY' }}{% if is_bed_trigger %} (JUST CHANGED){% endif %}{% else %}NO SENSOR{% endif %}
+            │ Bed: {% if has_bed_sensor %}{{ 'OCCUPIED' if bed_occupied_raw else 'EMPTY' }}{% if is_bed_trigger %} (CHANGED <5s ago){% endif %}{% else %}NO SENSOR{% endif %}
             │ Guest Mode: {{ 'ENABLED' if enable_guest_mode else 'DISABLED' }}
             │ Auto would turn ON: {{ auto_would_turn_on }}
             │ Auto would turn OFF: {{ auto_would_turn_off }}
@@ -2408,7 +2428,7 @@ action:
                             │ Brightness: {{ adaptive_brightness }}%
                             │ Color Temp: {{ adaptive_color_temp }}K
                             │ Guest Mode: {{ 'YES' if enable_guest_mode else 'NO' }}
-                            │ Bed Exit Delay: {{ bed_exit_delay_seconds }}s{% if is_bed_trigger and not bed_occupied_raw %} (APPLIED){% endif %}
+                            │ Bed Exit Delay: {{ bed_exit_delay_seconds }}s{% if is_bed_trigger and not bed_occupied_raw %} (APPLIED ±5s){% endif %}
                             └─────────────────────────────────────────────────────────────────
               
               # Turn lights OFF (with simple bed delay)
@@ -2529,7 +2549,7 @@ action:
                             │ Control Mode: {{ control_mode }}
                             │ Reason: {% if turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}Bed occupied{% else %}Room vacant{% endif %}
                             │ Fade Off: {{ effective_fade_off_time }}s
-                            │ Bed Entry Delay: {{ bed_entry_delay_seconds }}s{% if is_bed_trigger and bed_occupied_raw %} (APPLIED){% endif %}
+                            │ Bed Entry Delay: {{ bed_entry_delay_seconds }}s{% if is_bed_trigger and bed_occupied_raw %} (APPLIED ±5s){% endif %}
                             └─────────────────────────────────────────────────────────────────
               
               # Log when prevented from turning on (but not when lights already on) - with conditional logging
