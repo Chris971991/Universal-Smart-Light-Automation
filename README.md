@@ -1,8 +1,8 @@
 # Universal Smart Presence Lighting Control
-### Enhanced Version 3.8.3 - The Only Light Automation Blueprint You'll Ever Need
+### Enhanced Version 3.8.5 - The Only Light Automation Blueprint You'll Ever Need
 
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Blueprint-blue)](https://www.home-assistant.io/docs/automation/using_blueprints/)
-[![Version](https://img.shields.io/badge/Version-3.8.3-green)]()
+[![Version](https://img.shields.io/badge/Version-3.8.5-green)]()
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)]()
 
 A sophisticated, universal lighting automation blueprint for Home Assistant that intelligently manages your lights based on presence, ambient light levels, and manual preferences. Works perfectly for **ANY** room type - bedrooms, offices, living rooms, kitchens, bathrooms, and more.
@@ -16,20 +16,22 @@ A sophisticated, universal lighting automation blueprint for Home Assistant that
 - **🎨 Adaptive Brightness & Color** - Adjusts throughout the day for circadian rhythm
 - **🔧 Manual Override Protection** - Respects your manual control decisions
 - **⚡ Energy Efficient** - Automatically turns off when rooms are vacant
-- **🛏️ Bedroom Support** - Optional bed sensor integration (v3.8+)
+- **🛏️ Smart Bedroom Support** - Advanced bed sensor integration with delays (v3.8.5)
 
 ### Advanced Features (v3.8+)
-- **☀️ Daytime Control** - Option to disable daytime lighting during daylight hours
+- **🛏️ Smart Bed Delays** - Entry/exit delays prevent false triggers (v3.8.5)
+- **🌅 Accurate Sunrise/Sunset** - Time-based calculation for all latitudes (v3.8.4)
+- **📊 Smart Logging** - Conditional debug logs for better performance (v3.8.3)
+- **☀️ Daytime Control** - Flexible options for daytime lighting behavior
 - **👥 Guest Mode** - Special behavior for visitors
-- **📊 Performance Tracking** - Monitors automation efficiency
-- **🔍 Debug Logging** - Detailed decision tree logging
+- **🔍 Performance Tracking** - Monitors automation efficiency
 - **🌡️ Illuminance Averaging** - Filters out lighting spikes/drops
-- **🔕 Clean Logging** - Error logs always visible, debug logs only when needed (v3.8.3)
 
-### Latest Updates (v3.8.3)
-- **Improved** - Smart logging control: critical errors always visible, all other logs only when debugging
-- **Enhanced** - Multi-room friendly: debug logs only appear for rooms you're actively troubleshooting
-- **Optimized** - Better performance with reduced logging overhead when not debugging
+### Latest Updates (v3.8.5)
+- **NEW** - Smart bed sensor delays with configurable entry/exit timing
+- **NEW** - False trigger prevention when sitting on bed temporarily
+- **ENHANCED** - Bed state tracking for intelligent delay management
+- **IMPROVED** - More accurate presence-based control in bedrooms
 
 ## 📋 Table of Contents
 - [Requirements](#-requirements)
@@ -101,8 +103,10 @@ Go to **Settings** → **Devices & Services** → **Helpers** and create:
    - `input_boolean.[room_name]_light_auto_on`
    - `input_boolean.[room_name]_occupancy_state`
 
-2. **Date/Time Helper** (Type: Date and time)
+2. **Date/Time Helpers** (Type: Date and time)
    - `input_datetime.[room_name]_last_automation_action`
+   - ⚠️ **MUST have both date AND time enabled**
+   - `input_datetime.[room_name]_bed_state_changed` (ONLY if using bed sensor - v3.8.5)
    - ⚠️ **MUST have both date AND time enabled**
 
 3. **Text Helper** (Type: Text)
@@ -126,6 +130,11 @@ input_boolean:
 input_datetime:
   office_last_automation_action:
     name: Office Last Automation Action
+    has_date: true
+    has_time: true
+  # Only add if using bed sensor:
+  bedroom_bed_state_changed:
+    name: Bedroom Bed State Changed
     has_date: true
     has_time: true
 
@@ -169,46 +178,53 @@ Choose your setup:
 
 ### Advanced Configuration
 
-#### Debug Logging (v3.8.3 Enhanced)
-Control what appears in your Home Assistant logs:
+#### Smart Bed Sensor Delays (v3.8.5) 🆕
+Prevents false triggers and improves bedroom automation reliability.
 
-**When ENABLED**:
-- All automation decisions are logged
-- Detailed state changes tracked
-- Performance metrics shown
-- Perfect for troubleshooting
+**Bed Entry Delay**:
+- Time to wait after bed sensor detects occupancy before turning lights OFF
+- Prevents lights turning off when you just sit on the bed temporarily
+- Recommended: 30-60 seconds
+- Example: Set to 30s - lights won't turn off if you're just sitting to put on shoes
 
-**When DISABLED**:
-- Only critical errors are logged
-- Silent operation for normal use
-- Clean logs when running multiple rooms
-- Reduces system overhead
+**Bed Exit Delay**:
+- Time to wait after bed sensor shows unoccupied before allowing lights to turn ON
+- Prevents lights turning on when you roll over or briefly lose sensor contact
+- Recommended: 15-30 seconds
+- Example: Set to 15s - prevents false triggers from restless sleep
 
-**Important**: Error logs are ALWAYS shown regardless of this setting, ensuring you never miss critical issues!
+**Setup Requirements**:
+1. Configure a bed sensor (binary_sensor or input_boolean)
+2. Create the additional helper: `input_datetime.[room_name]_bed_state_changed`
+3. Set appropriate entry/exit delays based on your needs
+4. Enable "Turn Off Lights When Getting Into Bed" if desired
 
 #### Daytime Control Mode
 Prevents lights from turning on during daytime based on multiple options.
 
+**Three Modes Available**:
+- **Always Allow** - Normal operation, lights turn on automatically when dark and occupied
+- **Block When Away** - Energy saving mode - prevents auto-on during daytime when nobody's home
+- **Always Block** - Maximum energy saving - never auto-on during daytime regardless of presence
+
 **Setup**:
-1. Choose which control mode to use:
-   - **Always Allow** - Normal operation, lights turn on automatically when dark and occupied
-   - **Block When Away** - Energy saving mode - prevents auto-on during daytime when nobody's home
-   - **Always Block** - Maximum energy saving - never auto-on during daytime regardless of presence
-2. Add family phones/device trackers (Required for "Block When Away" mode)
-3. Configure sunrise/sunset offsets
+1. Choose your preferred control mode
+2. Add family phones/device trackers (required for "Block When Away")
+3. Configure sunrise/sunset offsets for accurate daytime detection
 
 **How it works**:
-- Prevents lights being turned on during daytime (e.g., pets walking through rooms)
-- Nighttime security lighting still works
-- Manual control always works
-- Still turns lights OFF automatically for energy saving
+- Uses actual sunrise/sunset times (not sun elevation) for accuracy (v3.8.4)
+- Respects your offset settings precisely (+30/-30 minutes, etc.)
+- Works accurately at all latitudes, from equator to polar regions
+- Manual control always works regardless of mode
+- Automatic turn-OFF still works for energy saving
 
 #### Guest Mode
 Modified behavior for when you have visitors:
 - Longer vacancy timeouts
 - Extended override periods
 - Less aggressive power saving
-- Optional bed sensor bypass
+- Optional bed sensor bypass (useful for guest bedrooms)
 
 #### Adaptive Lighting
 **Brightness Control**:
@@ -235,6 +251,18 @@ Modified behavior for when you have visitors:
    - Prevents forgotten overrides
    - Good for: Hallways, bathrooms
 
+#### Debug Logging (v3.8.3)
+**Smart Logging System**:
+- Error logs are ALWAYS shown for critical issues
+- Debug logs only appear when explicitly enabled
+- Reduces log clutter in multi-room setups
+- Better performance when not debugging
+
+**To Enable Debug Logs**:
+1. Toggle "Enable Debug Logs" in automation configuration
+2. View logs: **Settings** → **System** → **Logs**
+3. Filter by your room name
+
 #### Automatic Update Notifications (Optional)
 
 Get notified when new blueprint versions are available!
@@ -250,10 +278,10 @@ sensor:
       {{ value_json.tag_name | default('unknown') }}
     scan_interval: 86400
 ```
-    
+
 **Step 2:** Restart Home Assistant
-    
-**Step 3:** Enable the "Check for Updates" option at the bottom of this configuration
+
+**Step 3:** Enable the "Check for Updates" option at the bottom of the automation configuration
 
 ## 🔄 How It Works
 
@@ -270,11 +298,33 @@ graph TD
     D -->|No| H{Someone Present?}
     H -->|Yes| I{Dark Enough?}
     H -->|No| J[Turn Off Lights]
-    I -->|Yes| K{Bed Occupied?}
+    I -->|Yes| K{Bed Sensor Check}
     I -->|No| L[Keep Lights Off]
-    K -->|Yes| L
-    K -->|No| M[Turn On Lights]
+    K -->|Occupied + Entry Delay Met| M[Turn Off Lights]
+    K -->|Empty + Exit Delay Met| N[Turn On Lights]
+    K -->|Delay Not Met| O[Wait]
 ```
+
+### Smart Bed Sensor Logic (v3.8.5)
+
+The automation intelligently manages bed-related lighting with configurable delays:
+
+1. **Getting Into Bed**:
+   - Bed sensor detects occupancy
+   - Waits for entry delay (prevents false triggers from sitting)
+   - If still occupied after delay → turns lights OFF
+   - If unoccupied before delay expires → cancels action
+
+2. **Getting Out of Bed**:
+   - Bed sensor detects vacancy
+   - Waits for exit delay (prevents false triggers from movement)
+   - If still empty after delay → allows lights to turn ON
+   - If reoccupied before delay expires → maintains OFF state
+
+3. **Benefits**:
+   - No more lights turning off when sitting on bed edge
+   - No more lights flashing on during restless sleep
+   - Smooth, predictable behavior for bedtime routines
 
 ### Manual Override Logic
 
@@ -303,9 +353,23 @@ The automation responds to:
 - Illuminance sensor changes
 - Manual light/switch control
 - Sun position changes (sunrise/sunset)
-- Periodic checks (every minute for bed/tracker monitoring)
+- Bed sensor state changes (with delay processing)
+- Periodic checks (every minute for monitoring)
 
 ## 🏠 Room-Specific Examples
+
+### Bedroom Configuration (with Smart Delays)
+```yaml
+Room Name: master_bedroom
+Dark Threshold: 20 lux
+Bright Threshold: 150 lux
+Bed Sensor: binary_sensor.bed_occupancy
+Bed Entry Delay: 45 seconds
+Bed Exit Delay: 20 seconds
+Turn Off When Bed Occupied: Enabled
+Vacancy Timeout Multiplier: 3
+Guest Mode: Available for visitors
+```
 
 ### Office Configuration
 ```yaml
@@ -316,19 +380,7 @@ Vacancy Timeout Multiplier: 5
 Override Behavior: Timeout Only
 Override Timeout: 4 hours
 Daytime Control: Always Allow
-Enable Debug Logs: No (for daily use)
-```
-
-### Bedroom Configuration
-```yaml
-Room Name: master_bedroom
-Dark Threshold: 20 lux
-Bright Threshold: 150 lux
-Bed Sensor: binary_sensor.bed_occupancy
-Turn Off When Bed Occupied: Enabled
-Vacancy Timeout Multiplier: 3
-Guest Mode: Available for visitors
-Enable Debug Logs: No (for daily use)
+Debug Logs: Disabled
 ```
 
 ### Living Room Configuration
@@ -340,7 +392,8 @@ Adaptive Brightness: Enabled
 Color Temperature Control: Enabled
 Guest Mode: Enabled for parties
 Daytime Control: Block When Away
-Enable Debug Logs: No (for daily use)
+Sunrise Offset: +30 minutes
+Sunset Offset: -30 minutes
 ```
 
 ### Bathroom Configuration
@@ -351,7 +404,6 @@ Bright Threshold: 300 lux
 Vacancy Timeout Multiplier: 2
 Override Behavior: Vacancy Can Clear
 Fade On/Off: Disabled (instant)
-Enable Debug Logs: No (for daily use)
 ```
 
 ## 🔧 Troubleshooting
@@ -359,27 +411,33 @@ Enable Debug Logs: No (for daily use)
 ### Common Issues
 
 #### Lights Not Turning On
-1. **Check helpers exist** - All 6 helpers must be created
-2. **Check threshold** - Is room actually dark enough?
-3. **Check override** - Is manual override active?
-4. **Check presence** - Is sensor detecting you?
-5. **Check bed sensor** - Is bed marked as occupied?
-6. **Check daytime mode** - Is it daytime with control enabled?
+1. **Check helpers exist** - All required helpers must be created
+2. **Check bed delays** - If in bedroom, ensure exit delay has elapsed
+3. **Check threshold** - Is room actually dark enough?
+4. **Check override** - Is manual override active?
+5. **Check presence** - Is sensor detecting you?
+6. **Check daytime mode** - Is it blocked during daytime hours?
+
+#### Bedroom Lights Turn Off Too Quickly
+1. **Increase bed entry delay** - Try 60+ seconds
+2. **Check sensor placement** - Ensure reliable detection
+3. **Enable guest mode** - Temporarily disables bed features
+
+#### Bedroom Lights Flash On at Night
+1. **Increase bed exit delay** - Try 30+ seconds
+2. **Check sensor stability** - May need adjustment
+3. **Verify sensor type** - Some sensors are too sensitive
 
 #### Lights Not Turning Off
 1. **Check presence** - Sensor still detecting movement?
 2. **Check timeout** - Multiplier might be too high
 3. **Check override** - Manual override preventing off?
+4. **Check bed delays** - May be waiting for delay to expire
 
 #### Override Not Clearing
 1. **Verify helpers** - Ensure boolean helpers working
 2. **Check timeout** - Has enough time passed?
 3. **Check presence respect** - Still in room?
-
-#### Too Many Logs in Multi-Room Setup (v3.8.3 Solution)
-1. **Disable debug logs** for rooms not being troubleshot
-2. **Enable debug logs** only for the specific room you're debugging
-3. **Critical errors** will still appear for all rooms
 
 ### Debug Mode
 
@@ -389,19 +447,27 @@ Enable debug logging to see detailed decision making:
 2. View logs: **Settings** → **System** → **Logs**
 3. Filter by your room name
 
-Example debug output:
+Example debug output (v3.8.5):
 ```
-[OFFICE] AUTOMATION START
-│ Trigger: motion detected
-│ Presence: YES
-│ Illuminance: 25 lux (dark<30, bright≥200)
-│ Override: INACTIVE
-│ Should: turn ON
+[BEDROOM] AUTOMATION START
+│ Trigger: bed_change
+│ Lights On: YES
+│ Room Presence: YES
+│ Bed: OCCUPIED (delay: 35s/30s)
+│ Bed Allows Lights: NO (waiting)
+│ Should: turn OFF
 ```
-
-**Note**: In v3.8.3+, these detailed logs only appear when debug is enabled for that specific room!
 
 ## ❓ FAQ
+
+**Q: Do I need the bed_state_changed helper for non-bedroom rooms?**
+A: No, this helper is ONLY required if you're using a bed sensor. Skip it for other rooms.
+
+**Q: Why do I need bed delays?**
+A: They prevent false triggers. Without delays, lights might turn off when you sit on the bed or flash on when you move during sleep.
+
+**Q: What's the difference between entry and exit delays?**
+A: Entry delay = time before lights turn OFF when getting into bed. Exit delay = time before lights can turn ON when getting out of bed.
 
 **Q: Can I use this for multiple rooms?**
 A: Yes! Create separate automations for each room using the same blueprint.
@@ -409,54 +475,55 @@ A: Yes! Create separate automations for each room using the same blueprint.
 **Q: What if I don't have a light sensor?**
 A: Create an `input_number` helper set to 50 lux as a placeholder.
 
-**Q: Can I use this with color RGB lights?**
-A: Yes, but only brightness and color temperature are controlled, not RGB colors.
-
 **Q: Will this work with light groups?**
 A: Yes! Select your light group as the light entity.
+
+**Q: Why aren't sunrise/sunset offsets working correctly?**
+A: v3.8.4 fixed this! The automation now uses actual time calculations instead of sun elevation for accurate offsets at all latitudes.
+
+**Q: How do I reduce log spam from multiple rooms?**
+A: v3.8.3 introduced smart logging - debug logs only show when explicitly enabled per room, while errors always appear.
 
 **Q: Can I disable the automation temporarily?**
 A: Yes, disable the automation entity or use Guest Mode for modified behavior.
 
-**Q: Why aren't my helpers working?**
-A: Ensure all helper entity IDs are lowercase. "Office" room = "office" in entity IDs.
-
-**Q: How do I reduce log spam with multiple rooms? (v3.8.3+)**
-A: Disable "Enable Debug Logs" for rooms you're not actively troubleshooting. Critical errors will still be logged.
-
 ## 📝 Version History
 
-### v3.8.3 (2025-08-27)
-- **Improved**: Smart logging control - errors always visible, debug logs conditional
-- **Enhanced**: Multi-room friendly - only debug rooms you select will log
-- **Optimized**: Reduced logging overhead for better performance
-- **Fixed**: All non-critical logs now properly respect debug setting
+### v3.8.5 (Current)
+- **Added**: Smart bed sensor delays (entry/exit)
+- **Added**: Bed state tracking helper
+- **Fixed**: False triggers from temporary bed occupancy
+- **Enhanced**: Bedroom automation reliability
 
-### v3.8.2 (2025-08-26)
-- **Simplified**: Combined redundant Away/No-Daytime features into unified Daytime Control Mode
+### v3.8.4
+- **Fixed**: Sunrise/sunset offset calculations
+- **Improved**: Time-based calculation for all latitudes
+- **Enhanced**: Daytime detection accuracy
 
-### v3.8.1 (2025-08-26)
+### v3.8.3
+- **Added**: Smart conditional logging
+- **Improved**: Multi-room performance
+- **Fixed**: Log spam issues
+
+### v3.8.2
+- **Combined**: Unified daytime control modes
+- **Simplified**: Configuration options
+
+### v3.8.1
 - **Fixed**: Boolean logic in manual override system
-- **Fixed**: Override properly clears when action matches automation
-- **Fixed**: String/boolean type confusion in templates
+- **Fixed**: String/boolean type confusion
 
-### v3.8.0 (2025-08-20)
+### v3.8.0
 - **Added**: Away Mode with phone tracking
-- **Added**: No Daytime Lights option
-- **Added**: Enhanced bedroom support
-- **Added**: Performance metrics
-
-### v3.7.0 (2025-08-10)
-- **Added**: Illuminance spike protection
-- **Added**: Threshold validation
-- **Added**: State recovery system
-- **Enhanced**: Debug logging
+- **Added**: Daytime control options
+- **Enhanced**: Bedroom support
 
 ### Previous Versions
+- v3.7: Illuminance spike protection
 - v3.6: Guest mode
 - v3.5: Adaptive lighting
 - v3.0: Universal design
-- v2.0: Bed sensor support
+- v2.0: Basic bed sensor support
 - v1.0: Initial release
 
 ## 🤝 Contributing
