@@ -2232,44 +2232,44 @@ action:
                   - condition: template
                     value_template: "{{ not lights_on and auto_would_turn_on and not prevent_auto_on }}"
                 sequence:
-          - if:
-              - condition: template
-                value_template: "{{ enable_debug_logs }}"
-            then:
-              - service: system_log.write
-                data:
-                  level: warning
-                  message: >-
-                    ┌─ {{ room_name | upper }} LIGHTS TURNED ON ──────────────────────────────────────
-                    │ Control Mode: {{ control_mode }}
-                    │ Dynamic Mode: {{ dynamic_lighting_mode }}
+                  - if:
+                      - condition: template
+                        value_template: "{{ enable_debug_logs }}"
+                    then:
+                      - service: system_log.write
+                        data:
+                          level: warning
+                          message: >-
+                            ┌─ {{ room_name | upper }} LIGHTS TURNED ON ──────────────────────────────────────
+                            │ Control Mode: {{ control_mode }}
+                            │ Dynamic Mode: {{ dynamic_lighting_mode }}
                     │ Brightness: {{ adjusted_brightness }}%
                     │ Color Temp: {{ dynamic_color_temp }}K
                     │ Illuminance: {{ illuminance }} lux
                     │ Night Light: {{ 'YES' if should_use_night_light else 'NO' }}
                     │ Guest Mode: {{ 'YES' if enable_guest_mode else 'NO' }}
-                    │ Bed Exit Delay: {{ bed_exit_delay_seconds }}s{% if is_bed_trigger and not bed_occupied_raw %} (APPLIED ±5s){% endif %}
-                    └────────────────────────────────────────────────────────────────
-          
-          # Set automation active flag
-          - service: input_boolean.turn_on
-            target:
-              entity_id: "{{ automation_active_helper }}"
-          
-          # Mark lights as auto-on
-          - service: input_boolean.turn_on
-            target:
-              entity_id: "{{ light_auto_on_helper }}"
-          
-          # Update last automation action
-          - service: input_datetime.set_datetime
-            target:
-              entity_id: "{{ last_automation_action_helper }}"
-            data:
-              datetime: "{{ now().isoformat() }}"
-          
-          # Turn on appropriate lights
-          - choose:
+                            │ Bed Exit Delay: {{ bed_exit_delay_seconds }}s{% if is_bed_trigger and not bed_occupied_raw %} (APPLIED ±5s){% endif %}
+                            └────────────────────────────────────────────────────────────────
+                  
+                  # Set automation active flag
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ automation_active_helper }}"
+                  
+                  # Mark lights as auto-on
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ light_auto_on_helper }}"
+                  
+                  # Update last automation action
+                  - service: input_datetime.set_datetime
+                    target:
+                      entity_id: "{{ last_automation_action_helper }}"
+                    data:
+                      datetime: "{{ now().isoformat() }}"
+                  
+                  # Turn on appropriate lights
+                  - choose:
               # Night light mode
               - conditions:
                   - condition: template
@@ -2343,19 +2343,19 @@ action:
                       brightness_pct: "{{ adjusted_brightness }}"
                       transition: "{{ effective_fade_on_time }}"
               
-              # Turn on switch if needed
-              - if:
-                  - condition: template
-                    value_template: "{{ control_mode in ['switch_only', 'switch_and_lights'] and has_switch }}"
-                then:
-                  - service: homeassistant.turn_on
+                      # Turn on switch if needed
+                      - if:
+                          - condition: template
+                            value_template: "{{ control_mode in ['switch_only', 'switch_and_lights'] and has_switch }}"
+                        then:
+                          - service: homeassistant.turn_on
+                            target:
+                              entity_id: "{{ light_switch }}"
+                  
+                  # Clear automation active flag
+                  - service: input_boolean.turn_off
                     target:
-                      entity_id: "{{ light_switch }}"
-          
-          # Clear automation active flag
-          - service: input_boolean.turn_off
-            target:
-              entity_id: "{{ automation_active_helper }}"
+                      entity_id: "{{ automation_active_helper }}"
               
       # Automatic Turn OFF - No presence or bed occupied
       - conditions:
