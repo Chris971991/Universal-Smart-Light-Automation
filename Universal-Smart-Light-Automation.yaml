@@ -2357,25 +2357,26 @@ action:
                     target:
                       entity_id: "{{ automation_active_helper }}"
               
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ lights_on and auto_would_turn_off }}"
-                        sequence:
-          - if:
-              - condition: template
-                value_template: "{{ enable_debug_logs }}"
-            then:
-              - service: system_log.write
-                data:
-                  level: warning
-                  message: >-
-                    ┌─ {{ room_name | upper }} LIGHTS TURNED OFF ──────────────────────────────────────
-                    │ Control Mode: {{ control_mode }}
-                    │ Reason: {% if turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}Bed occupied{% else %}Room vacant{% endif %}
-                    │ Vacancy Time: {{ room_vacant_minutes }} minutes
-                    │ Fade Off: {{ effective_fade_off_time }}s
-                    │ Bed Entry Delay: {{ bed_entry_delay_seconds }}s{% if is_bed_trigger and bed_occupied_raw %} (APPLIED ±5s){% endif %}
-                    └────────────────────────────────────────────────────────────────
+              # Automatic Turn OFF - No presence or bed occupied
+              - conditions:
+                  - condition: template
+                    value_template: "{{ lights_on and auto_would_turn_off }}"
+                sequence:
+                  - if:
+                      - condition: template
+                        value_template: "{{ enable_debug_logs }}"
+                    then:
+                      - service: system_log.write
+                        data:
+                          level: warning
+                          message: >-
+                            ┌─ {{ room_name | upper }} LIGHTS TURNED OFF ──────────────────────────────────────
+                            │ Control Mode: {{ control_mode }}
+                            │ Reason: {% if turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}Bed occupied{% else %}Room vacant{% endif %}
+                            │ Vacancy Time: {{ room_vacant_minutes }} minutes
+                            │ Fade Off: {{ effective_fade_off_time }}s
+                            │ Bed Entry Delay: {{ bed_entry_delay_seconds }}s{% if is_bed_trigger and bed_occupied_raw %} (APPLIED ±5s){% endif %}
+                            └────────────────────────────────────────────────────────────────
           
           # Wait for vacancy timeout (with bed entry delay if applicable)
           - if:
