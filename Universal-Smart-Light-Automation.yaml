@@ -2286,6 +2286,11 @@ action:
                          states(light_switch) == 'on' and
                          is_state(manual_override_helper, 'off') }}
                   
+                  # Set automation active flag before changing lights
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ automation_active_helper }}"
+                  
                   - service: homeassistant.turn_off
                     target:
                       entity_id: "{{ light_switch }}"
@@ -2345,6 +2350,11 @@ action:
                          is_dark and
                          states(light_switch) == 'off' and
                          is_state(manual_override_helper, 'off') }}
+                  
+                  # Set automation active flag before changing lights
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ automation_active_helper }}"
                   
                   - service: homeassistant.turn_on
                     target:
