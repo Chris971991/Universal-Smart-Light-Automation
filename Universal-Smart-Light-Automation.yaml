@@ -40,7 +40,7 @@ blueprint:
 
     Before using this blueprint, you MUST create these helper entities.
     
-    **IMPORTANT**: All entity IDs must be lowercase! If your room name is "Office", 
+    **IMPORTANT**: All entity IDs must be lowercase! If your room name is "Office",
     the helpers should use "office" (lowercase) in their entity IDs.
     
     1. `input_boolean.[room_name]_automation_active`
@@ -49,6 +49,7 @@ blueprint:
     4. `input_datetime.[room_name]_last_automation_action` (MUST have both date AND time enabled)
     5. `input_boolean.[room_name]_occupancy_state`
     6. `input_text.[room_name]_illuminance_history`
+    7. `input_text.[room_name]_bed_state_tracker` (REQUIRED if using bed sensor - tracks bed state changes)
     
     Replace [room_name] with your actual room name in LOWERCASE (e.g., office, bedroom, living_room)
 
@@ -637,6 +638,9 @@ blueprint:
 variables:
   # Store start time for performance monitoring
   start_time: "{{ now().timestamp() }}"
+  
+  # Store previous bed state for change detection
+  bed_state_tracker: "input_text.{{ room_name | lower }}_bed_state_tracker"
   
   # Version checking
   blueprint_version: "3.8.7"  # UPDATE THIS WITH EACH RELEASE
@@ -1235,28 +1239,17 @@ variables:
   is_periodic_trigger: "{{ trigger.platform == 'time_pattern' }}"
   is_sun_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == 'sun.sun' }}"
   
-  # FIXED v3.8.7: Bed trigger detection via state change monitoring
-  bed_changed_recently: >-
-    {% if has_bed_sensor and states[bed_occupied_helper] %}
-      {% set last_change = as_timestamp(states[bed_occupied_helper].last_changed, 0) %}
-      {% if last_change > 0 %}
-        {{ (now().timestamp() - last_change) < 2 }}
-      {% else %}
-        {{ false }}
-      {% endif %}
-    {% else %}
-      {{ false }}
-    {% endif %}
-  
-  # Check previous bed state for change detection
-  bed_previous_state: >-
-    {% if has_bed_sensor and states[bed_occupied_helper] %}
-      {% set last_change = states[bed_occupied_helper].last_changed %}
-      {% if last_change and (now().timestamp() - as_timestamp(last_change, 0)) < 2 %}
-        {% if states[bed_occupied_helper].state == 'on' %}
-          off
+  # FIXED v3.8.7: Robust bed trigger detection with state tracking
+  # Get the last known bed state from tracking variable
+  last_tracked_bed_state: >-
+    {% if has_bed_sensor %}
+      {% set tracker_id = 'input_text.' ~ (room_name | lower) ~ '_bed_state_tracker' %}
+      {% if states[tracker_id] %}
+        {% set tracked = states(tracker_id) %}
+        {% if tracked in ['on', 'off'] %}
+          {{ tracked }}
         {% else %}
-          on
+          unknown
         {% endif %}
       {% else %}
         unknown
@@ -1265,15 +1258,24 @@ variables:
       unknown
     {% endif %}
   
+  # Check if bed state has changed compared to tracked state
+  bed_state_changed: >-
+    {% if has_bed_sensor and last_tracked_bed_state != 'unknown' %}
+      {% set current = 'on' if bed_occupied_raw else 'off' %}
+      {{ current != last_tracked_bed_state }}
+    {% else %}
+      {{ false }}
+    {% endif %}
+  
   # Bed state change detection (works with periodic trigger)
   is_bed_trigger: >-
-    {{ has_bed_sensor and is_periodic_trigger and bed_changed_recently }}
+    {{ has_bed_sensor and is_periodic_trigger and bed_state_changed }}
   
   bed_just_occupied: >-
-    {{ is_bed_trigger and bed_occupied_raw and bed_previous_state == 'off' }}
+    {{ is_bed_trigger and bed_occupied_raw and last_tracked_bed_state == 'off' }}
   
   bed_just_vacated: >-
-    {{ is_bed_trigger and not bed_occupied_raw and bed_previous_state == 'on' }}
+    {{ is_bed_trigger and not bed_occupied_raw and last_tracked_bed_state == 'on' }}
   
   user_turned_on: "{{ is_primary_trigger and trigger.to_state.state == 'on' and trigger.from_state.state == 'off' }}"
   user_turned_off: "{{ is_primary_trigger and trigger.to_state.state == 'off' and trigger.from_state.state == 'on' }}"
@@ -1823,6 +1825,65 @@ action:
       notification_id: "{{ room_name }}_tracker_warning"
     continue_on_error: true
   
+  # Initialize or update bed state tracker
+  - choose:
+      # Initialize tracker on first run if bed sensor exists
+      - conditions:
+          - condition: template
+            value_template: >-
+              {% if has_bed_sensor %}
+                {% set tracker_id = 'input_text.' ~ (room_name | lower) ~ '_bed_state_tracker' %}
+                {% if not states[tracker_id] %}
+                  {{ true }}
+                {% elif states(tracker_id) not in ['on', 'off'] %}
+                  {{ true }}
+                {% else %}
+                  {{ false }}
+                {% endif %}
+              {% else %}
+                {{ false }}
+              {% endif %}
+        sequence:
+          - service: input_text.set_value
+            data:
+              entity_id: "{{ 'input_text.' ~ (room_name | lower) ~ '_bed_state_tracker' }}"
+              value: "{{ 'on' if bed_occupied_raw else 'off' }}"
+            continue_on_error: true
+          - if:
+              - condition: template
+                value_template: "{{ enable_debug_logs }}"
+            then:
+              - service: system_log.write
+                data:
+                  level: info
+                  message: "[{{ room_name | upper }}] Initialized bed state tracker to {{ 'OCCUPIED' if bed_occupied_raw else 'EMPTY' }}"
+      
+      # Handle bed state changes
+      - conditions:
+          - condition: template
+            value_template: "{{ has_bed_sensor and bed_state_changed }}"
+        sequence:
+          # Update tracker with new state
+          - service: input_text.set_value
+            data:
+              entity_id: "{{ 'input_text.' ~ (room_name | lower) ~ '_bed_state_tracker' }}"
+              value: "{{ 'on' if bed_occupied_raw else 'off' }}"
+            continue_on_error: true
+          
+          - if:
+              - condition: template
+                value_template: "{{ enable_debug_logs }}"
+            then:
+              - service: system_log.write
+                data:
+                  level: warning
+                  message: >-
+                    ┌─ {{ room_name | upper }} BED STATE CHANGED ──────────────────────────────────────
+                    │ Previous: {{ 'OCCUPIED' if last_tracked_bed_state == 'on' else 'EMPTY' if last_tracked_bed_state == 'off' else 'UNKNOWN' }}
+                    │ Current: {{ 'OCCUPIED' if bed_occupied_raw else 'EMPTY' }}
+                    │ Action: {{ 'Will apply ENTRY delay (' ~ bed_entry_delay_seconds ~ 's)' if bed_just_occupied else 'Will apply EXIT delay (' ~ bed_exit_delay_seconds ~ 's)' if bed_just_vacated else 'No delay needed' }}
+                    └────────────────────────────────────────────────────────────────
+  
   # Update illuminance history
   - choose:
       - conditions:
@@ -1891,7 +1952,7 @@ action:
             │ Prevent Auto-ON: {{ 'YES' if prevent_auto_on else 'NO' }} {% if prevent_auto_on %}({{ 'nobody home' if away_mode_active else 'daytime block' }}){% endif %}
             │ Illuminance: {{ illuminance }}lux (dark<{{ dark_threshold }}, bright≥{{ bright_threshold }})
             │ Override: {{ 'ACTIVE' if manual_override else 'INACTIVE' }}
-            │ Bed: {% if has_bed_sensor %}{{ 'OCCUPIED' if bed_occupied_raw else 'EMPTY' }}{% if is_bed_trigger %} (JUST {{ 'OCCUPIED' if bed_just_occupied else 'VACATED' }}){% endif %}{% else %}NO SENSOR{% endif %}
+            │ Bed: {% if has_bed_sensor %}{{ 'OCCUPIED' if bed_occupied_raw else 'EMPTY' }}{% if bed_state_changed %} (CHANGED from {{ last_tracked_bed_state | upper }}){% endif %}{% if bed_just_occupied %} → ENTRY DELAY{% elif bed_just_vacated %} → EXIT DELAY{% endif %}{% else %}NO SENSOR{% endif %}
             │ Guest Mode: {{ 'ENABLED' if enable_guest_mode else 'DISABLED' }}
             │ Auto would turn ON: {{ auto_would_turn_on }}
             │ Auto would turn OFF: {{ auto_would_turn_off }}
@@ -2207,11 +2268,14 @@ action:
                   - condition: template
                     value_template: "{{ auto_would_turn_on and not lights_on and not prevent_auto_on }}"
                 sequence:
-                  # If this is triggered by getting out of bed, wait the exit delay
+                  # Handle bed exit delay if configured
                   - choose:
                       - conditions:
                           - condition: template
-                            value_template: "{{ bed_just_vacated and has_bed_sensor and bed_exit_delay_seconds > 0 }}"
+                            value_template: >-
+                              {{ has_bed_sensor and
+                                 bed_just_vacated and
+                                 bed_exit_delay_seconds > 0 }}
                         sequence:
                           - if:
                               - condition: template
@@ -2220,12 +2284,31 @@ action:
                               - service: system_log.write
                                 data:
                                   level: warning
-                                  message: "[{{ room_name | upper }}] Bed vacated - waiting {{ bed_exit_delay_seconds }}s before allowing lights ON"
+                                  message: >-
+                                    [{{ room_name | upper }}] BED EXIT DETECTED
+                                    │ Applying {{ bed_exit_delay_seconds }}s delay before allowing lights ON
+                          
+                          # Apply the exit delay
                           - delay:
                               seconds: "{{ bed_exit_delay_seconds }}"
-                          # Re-check conditions after delay
+                          
+                          # Re-check ALL conditions after delay
                           - condition: template
-                            value_template: "{{ is_dark and someone_present and states(bed_occupied_helper) == 'off' and is_state(manual_override_helper, 'off') }}"
+                            value_template: >-
+                              {{ is_dark and
+                                 someone_present and
+                                 states(bed_occupied_helper) == 'off' and
+                                 is_state(manual_override_helper, 'off') and
+                                 not prevent_auto_on }}
+                          
+                          - if:
+                              - condition: template
+                                value_template: "{{ enable_debug_logs }}"
+                            then:
+                              - service: system_log.write
+                                data:
+                                  level: info
+                                  message: "[{{ room_name | upper }}] Exit delay complete - proceeding to turn lights ON"
                   
                   # Set automation active
                   - service: input_boolean.turn_on
@@ -2333,7 +2416,7 @@ action:
                   - condition: template
                     value_template: "{{ auto_would_turn_off and lights_on }}"
                 sequence:
-                  # Handle bed-triggered OFF with delay
+                  # Handle bed entry delay if configured
                   - choose:
                       - conditions:
                           - condition: template
@@ -2342,9 +2425,9 @@ action:
                                  turn_off_when_bed_occupied and
                                  bed_just_occupied and
                                  bed_entry_delay_seconds > 0 and
+                                 lights_on and
                                  not (enable_guest_mode and guest_ignore_bed) }}
                         sequence:
-                          # Log delay start if debug enabled
                           - if:
                               - condition: template
                                 value_template: "{{ enable_debug_logs }}"
@@ -2352,13 +2435,16 @@ action:
                               - service: system_log.write
                                 data:
                                   level: warning
-                                  message: "[{{ room_name | upper }}] Bed occupied - waiting {{ bed_entry_delay_seconds }}s before turning off lights"
+                                  message: >-
+                                    [{{ room_name | upper }}] BED ENTRY DETECTED
+                                    │ Lights currently ON
+                                    │ Applying {{ bed_entry_delay_seconds }}s delay before turning off
                           
-                          # Wait the entry delay
+                          # Apply the entry delay
                           - delay:
                               seconds: "{{ bed_entry_delay_seconds }}"
                           
-                          # Verify ALL conditions still valid after delay
+                          # Re-verify ALL conditions after delay
                           - condition: template
                             value_template: >-
                               {{ states(bed_occupied_helper) == 'on' and
@@ -2367,7 +2453,6 @@ action:
                                  turn_off_when_bed_occupied and
                                  not (enable_guest_mode and guest_ignore_bed) }}
                           
-                          # Log if debug enabled
                           - if:
                               - condition: template
                                 value_template: "{{ enable_debug_logs }}"
@@ -2375,7 +2460,7 @@ action:
                               - service: system_log.write
                                 data:
                                   level: warning
-                                  message: "[{{ room_name | upper }}] Bed still occupied after {{ bed_entry_delay_seconds }}s - turning off lights"
+                                  message: "[{{ room_name | upper }}] Entry delay complete - bed still occupied, turning lights OFF"
                   
                   # Set automation active
                   - service: input_boolean.turn_on
