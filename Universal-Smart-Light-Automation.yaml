@@ -1153,10 +1153,10 @@ variables:
   # Smart illuminance averaging with spike AND drop detection
   illuminance: >-
     {% if not enable_illuminance_averaging %}
-      {{ illuminance_raw }}
+      {{ illuminance_raw | round(2) }}
     {% else %}
       {% if illuminance_history_raw == '[]' or illuminance_history_raw == [] %}
-        {{ illuminance_raw }}
+        {{ illuminance_raw | round(2) }}
       {% else %}
         {% set history_str = illuminance_history_raw | string %}
         {% if history_str.startswith('[') and history_str.endswith(']') %}
@@ -1169,10 +1169,10 @@ variables:
             {# Detect both drops AND spikes #}
             {% if change_ratio < 0.3 and last_avg > 20 %}
               {# Major drop detected - likely lights turned off #}
-              {{ illuminance_raw }}
+              {{ illuminance_raw | round(2) }}
             {% elif change_ratio > 5 and illuminance_raw > 500 %}
               {# Major spike detected - likely flash/lightning #}
-              {{ last_avg | round(1) }}
+              {{ last_avg | round(2) }}
             {% else %}
               {# Remove outliers in both directions #}
               {% set filtered_values = [] %}
@@ -1184,13 +1184,13 @@ variables:
               {% endfor %}
               
               {% set all_values = filtered_values + [illuminance_raw | float] %}
-              {{ (all_values | sum) / (all_values | length) | round(1) }}
+              {{ (all_values | sum) / (all_values | length) | round(2) }}
             {% endif %}
           {% else %}
-            {{ illuminance_raw }}
+            {{ illuminance_raw | round(2) }}
           {% endif %}
         {% else %}
-          {{ illuminance_raw }}
+          {{ illuminance_raw | round(2) }}
         {% endif %}
       {% endif %}
     {% endif %}
@@ -1918,7 +1918,7 @@ action:
             data:
               value: >-
                 {% if illuminance_history_raw == '[]' or illuminance_history_raw == [] %}
-                  [{{ illuminance_raw }}]
+                  [{{ illuminance_raw | round(2) }}]
                 {% else %}
                   {% set history_str = illuminance_history_raw | string %}
                   {% if history_str.startswith('[') and history_str.endswith(']') %}
@@ -1929,26 +1929,26 @@ action:
                       {% set change_ratio = illuminance_raw / last_avg if last_avg > 0 else 1 %}
                       
                       {% if change_ratio < 0.3 and last_avg > 20 %}
-                        [{{ illuminance_raw }}]
+                        [{{ illuminance_raw | round(2) }}]
                       {% elif change_ratio > 5 and illuminance_raw > 500 %}
-                        [{{ values[-5:] | join(',') }}]
+                        [{{ values[-5:] | map('round', 2) | join(',') }}]
                       {% else %}
                         {% set filtered_values = [] %}
                         {% for val in values[-4:] %}
                           {% set val_ratio = val / illuminance_raw if illuminance_raw > 0 else 999 %}
                           {% if 0.2 < val_ratio < 5 or (illuminance_raw < 20 and val < 50) %}
-                            {% set filtered_values = filtered_values + [val] %}
+                            {% set filtered_values = filtered_values + [val | round(2)] %}
                           {% endif %}
                         {% endfor %}
                         
-                        {% set new_values = filtered_values[-4:] + [illuminance_raw | float] %}
+                        {% set new_values = filtered_values[-4:] + [illuminance_raw | round(2)] %}
                         [{{ new_values | join(',') }}]
                       {% endif %}
                     {% else %}
-                      [{{ illuminance_raw }}]
+                      [{{ illuminance_raw | round(2) }}]
                     {% endif %}
                   {% else %}
-                    [{{ illuminance_raw }}]
+                    [{{ illuminance_raw | round(2) }}]
                   {% endif %}
                 {% endif %}
   
