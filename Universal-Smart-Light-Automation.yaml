@@ -2295,10 +2295,10 @@ action:
                       level: warning
                       message: "[{{ room_name | upper }}] Bed entry delay complete - lights turned OFF"
                   
-                  # Clear the delay flag
+                  # Clear the delay flag and set back to occupied state
                   - service: input_text.set_value
                     data:
-                      entity_id: "{{ bed_occupied_helper }}"
+                      entity_id: "{{ 'input_text.' ~ bed_state_history_key }}"
                       value: "on"
               
               # Bed Exit - Turn lights ON with delay
@@ -2355,10 +2355,10 @@ action:
                       level: warning
                       message: "[{{ room_name | upper }}] Bed exit delay complete - lights turned ON"
                   
-                  # Clear the delay flag
+                  # Clear the delay flag and set back to empty state
                   - service: input_text.set_value
                     data:
-                      entity_id: "{{ bed_occupied_helper }}"
+                      entity_id: "{{ 'input_text.' ~ bed_state_history_key }}"
                       value: "off"
       
       # Automatic light control (with conditional logging)
