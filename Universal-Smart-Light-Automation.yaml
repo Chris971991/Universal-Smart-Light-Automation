@@ -1,32 +1,40 @@
 blueprint:
   name: Universal Smart Presence Lighting Control - Enhanced v3.8.7
   description: >
-    ## 💡 Universal Smart Presence Lighting Control
+    💡 **Universal Smart Presence Lighting Control**
     
-    ### Version 3.8.7
+    Version 3.8.7
     
-    [**📘 Documentation**](https://github.com/Chris971991/universal-smart-light-automation) | [**🐛 Report Issue**](https://github.com/Chris971991/universal-smart-light-automation/issues) | [**⭐ Star on GitHub**](https://github.com/Chris971991/universal-smart-light-automation)
     
-    ---
+    [📘 Documentation](https://github.com/Chris971991/universal-smart-light-automation) • [🐛 Report Issue](https://github.com/Chris971991/universal-smart-light-automation/issues) • [⭐ Star on GitHub](https://github.com/Chris971991/universal-smart-light-automation)
+    
     
     **The most comprehensive lighting automation for Home Assistant - one blueprint to rule them all!**
     
+    
     This advanced automation intelligently manages your lights using presence detection, ambient light sensing, and adaptive brightness control. It learns from your manual interactions, respects your preferences, and seamlessly adapts to different times of day. Whether it's a bedroom with sleep detection, an office with productivity lighting, or a living room with guest mode - this single blueprint handles it all with sophisticated logic that just works.
     
-    ✅ **Perfect for:** Bedrooms • Living Rooms • Offices • Kitchens • Bathrooms • Hallways • Any Space
     
-    ---
+    ✅ **Perfect for:** Bedrooms • Living Rooms • Offices • Kitchens • Bathrooms • Hallways • Any Space
     
     <details>
     <summary><b>✨ Key Features</b></summary>
     
-    - 🎯 **Universal Design** - Works for ANY room type
-    - 🏠 **Smart Presence Detection** - PIR, mmWave, and occupancy sensors
-    - 💡 **Adaptive Lighting** - Brightness & color temperature by time of day
-    - 🛏️ **Bedroom Mode** - Full bed sensor integration with delays
-    - 🔧 **Manual Override** - Respects your manual control
-    - ⚡ **Energy Saving** - Daytime control & away mode
-    - 👥 **Guest Mode** - Special behavior for visitors
+    
+    • 🎯 **Universal Design** - Works for ANY room type
+    
+    • 🏠 **Smart Presence Detection** - PIR, mmWave, and occupancy sensors
+    
+    • 💡 **Adaptive Lighting** - Brightness & color temperature by time of day
+    
+    • 🛏️ **Bedroom Mode** - Full bed sensor integration with delays
+    
+    • 🔧 **Manual Override** - Respects your manual control
+    
+    • ⚡ **Energy Saving** - Daytime control & away mode
+    
+    • 👥 **Guest Mode** - Special behavior for visitors
+    
     
     </details>
     
@@ -87,12 +95,19 @@ blueprint:
     <details>
     <summary><b>📚 Quick Start Guide</b></summary>
     
+    
     1. ✅ Create all required helper entities (see above)
+    
     2. ✅ Create automation from this blueprint
+    
     3. ✅ Configure Room Setup section
+    
     4. ✅ Set up Presence Detection
+    
     5. ✅ Adjust Light Level thresholds
+    
     6. ✅ Optional: Configure advanced features
+    
     
     </details>
 
