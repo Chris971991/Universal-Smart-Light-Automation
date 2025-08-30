@@ -1525,20 +1525,16 @@ condition:
           trigger.from_state.state != trigger.to_state.state) }}
   
   # Don't restart if bed delay is in progress (to prevent interrupting delays)
-  # This prevents the periodic trigger from canceling ongoing bed delays
+  # This blocks ALL triggers during bed delays to prevent any interruption
   - condition: template
     value_template: >-
-      {% if trigger.id == 'periodic_check' %}
-        {% set ns = namespace(found_delay=false) %}
-        {% for state in states.input_text %}
-          {% if state.entity_id.endswith('_bed_state') and state.state in ['delaying_off', 'delaying_on'] %}
-            {% set ns.found_delay = true %}
-          {% endif %}
-        {% endfor %}
-        {{ not ns.found_delay }}
-      {% else %}
-        {{ true }}
-      {% endif %}
+      {% set ns = namespace(found_delay=false) %}
+      {% for state in states.input_text %}
+        {% if state.entity_id.endswith('_bed_state') and state.state in ['delaying_off', 'delaying_on'] %}
+          {% set ns.found_delay = true %}
+        {% endif %}
+      {% endfor %}
+      {{ not ns.found_delay }}
 
 # Actions
 action:
