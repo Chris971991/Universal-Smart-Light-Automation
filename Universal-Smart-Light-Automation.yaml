@@ -639,9 +639,6 @@ variables:
   # Store start time for performance monitoring
   start_time: "{{ now().timestamp() }}"
   
-  # Store previous bed state for change detection
-  bed_state_tracker: "input_text.{{ room_name | lower }}_bed_state_tracker"
-  
   # Version checking
   blueprint_version: "3.8.7"  # UPDATE THIS WITH EACH RELEASE
   enable_update_check: !input enable_update_check
@@ -1242,7 +1239,7 @@ variables:
   # FIXED v3.8.7: Robust bed trigger detection with state tracking
   # Get the last known bed state from tracking variable
   last_tracked_bed_state: >-
-    {% if has_bed_sensor %}
+    {% if has_bed_sensor and room_name %}
       {% set tracker_id = 'input_text.' ~ (room_name | lower) ~ '_bed_state_tracker' %}
       {% if states[tracker_id] %}
         {% set tracked = states(tracker_id) %}
@@ -1260,7 +1257,7 @@ variables:
   
   # Check if bed state has changed compared to tracked state
   bed_state_changed: >-
-    {% if has_bed_sensor and last_tracked_bed_state != 'unknown' %}
+    {% if has_bed_sensor and room_name and last_tracked_bed_state != 'unknown' %}
       {% set current = 'on' if bed_occupied_raw else 'off' %}
       {{ current != last_tracked_bed_state }}
     {% else %}
@@ -1831,7 +1828,7 @@ action:
       - conditions:
           - condition: template
             value_template: >-
-              {% if has_bed_sensor %}
+              {% if has_bed_sensor and room_name %}
                 {% set tracker_id = 'input_text.' ~ (room_name | lower) ~ '_bed_state_tracker' %}
                 {% if not states[tracker_id] %}
                   {{ true }}
