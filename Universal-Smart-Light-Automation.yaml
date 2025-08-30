@@ -1211,12 +1211,18 @@ variables:
     {% if trigger.platform != 'state' %}
       {{ false }}
     {% elif control_mode == 'switch_only' and trigger.entity_id == light_switch %}
-      {% set bed_state_entity = 'input_text.' ~ bed_state_history_key %}
-      {% if bed_state_entity and states[bed_state_entity] %}
-        {% set seconds_since_bed_state_change = (now() - states[bed_state_entity].last_changed).total_seconds() %}
-        {% if seconds_since_bed_state_change < 5 %}
-          {# Bed state changed recently - this is bed-triggered #}
-          {{ false }}
+      {% if bed_state_history_key is defined and bed_state_history_key %}
+        {% set bed_state_entity = 'input_text.' ~ bed_state_history_key %}
+        {% if states[bed_state_entity] is defined %}
+          {% set seconds_since_bed_state_change = (now() - states[bed_state_entity].last_changed).total_seconds() %}
+          {% if seconds_since_bed_state_change < 5 %}
+            {# Bed state changed recently - this is bed-triggered #}
+            {{ false }}
+          {% elif automation_active and not automation_active_stale and time_since_last_automation < 3 %}
+            {{ false }}
+          {% else %}
+            {{ true }}
+          {% endif %}
         {% elif automation_active and not automation_active_stale and time_since_last_automation < 3 %}
           {{ false }}
         {% else %}
@@ -1228,12 +1234,18 @@ variables:
         {{ true }}
       {% endif %}
     {% elif control_mode != 'switch_only' and trigger.entity_id in light_entities %}
-      {% set bed_state_entity = 'input_text.' ~ bed_state_history_key %}
-      {% if bed_state_entity and states[bed_state_entity] %}
-        {% set seconds_since_bed_state_change = (now() - states[bed_state_entity].last_changed).total_seconds() %}
-        {% if seconds_since_bed_state_change < 5 %}
-          {# Bed state changed recently - this is bed-triggered #}
-          {{ false }}
+      {% if bed_state_history_key is defined and bed_state_history_key %}
+        {% set bed_state_entity = 'input_text.' ~ bed_state_history_key %}
+        {% if states[bed_state_entity] is defined %}
+          {% set seconds_since_bed_state_change = (now() - states[bed_state_entity].last_changed).total_seconds() %}
+          {% if seconds_since_bed_state_change < 5 %}
+            {# Bed state changed recently - this is bed-triggered #}
+            {{ false }}
+          {% elif automation_active and not automation_active_stale and time_since_last_automation < 3 %}
+            {{ false }}
+          {% else %}
+            {{ true }}
+          {% endif %}
         {% elif automation_active and not automation_active_stale and time_since_last_automation < 3 %}
           {{ false }}
         {% else %}
