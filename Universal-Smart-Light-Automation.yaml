@@ -2273,7 +2273,7 @@ action:
                     value_template: >-
                       {{ bed_just_vacated and
                          is_dark and
-                         room_occupied and
+                         someone_present and
                          not lights_on and
                          not prevent_auto_on }}
                 sequence:
@@ -2289,7 +2289,7 @@ action:
                   - condition: template
                     value_template: >-
                       {{ states(bed_occupied_helper) == 'off' and
-                         room_occupied and
+                         someone_present and
                          is_dark and
                          not lights_on and
                          is_state(manual_override_helper, 'off') }}
