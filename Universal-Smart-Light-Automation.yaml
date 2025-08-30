@@ -1,14 +1,19 @@
 blueprint:
   name: Universal Smart Presence Lighting Control - Enhanced v3.8.7
   description: >
-    # 💡 Universal Smart Presence Lighting Control
-    **Version 3.8.7** | [GitHub](https://github.com/Chris971991/universal-smart-light-automation) | [Report Issues](https://github.com/Chris971991/universal-smart-light-automation/issues)
+    ## 💡 Universal Smart Presence Lighting Control
     
-    *The most comprehensive lighting automation for Home Assistant - one blueprint to rule them all!*
+    ### Version 3.8.7
+    
+    [**📘 Documentation**](https://github.com/Chris971991/universal-smart-light-automation) | [**🐛 Report Issue**](https://github.com/Chris971991/universal-smart-light-automation/issues) | [**⭐ Star on GitHub**](https://github.com/Chris971991/universal-smart-light-automation)
+    
+    ---
+    
+    **The most comprehensive lighting automation for Home Assistant - one blueprint to rule them all!**
     
     This advanced automation intelligently manages your lights using presence detection, ambient light sensing, and adaptive brightness control. It learns from your manual interactions, respects your preferences, and seamlessly adapts to different times of day. Whether it's a bedroom with sleep detection, an office with productivity lighting, or a living room with guest mode - this single blueprint handles it all with sophisticated logic that just works.
     
-    **Perfect for:** Bedrooms • Living Rooms • Offices • Kitchens • Bathrooms • Hallways • Any Space
+    ✅ **Perfect for:** Bedrooms • Living Rooms • Offices • Kitchens • Bathrooms • Hallways • Any Space
     
     ---
     
