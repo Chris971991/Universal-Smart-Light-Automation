@@ -1237,7 +1237,7 @@ variables:
   is_sun_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == 'sun.sun' }}"
   
   # FIXED v3.8.7: Simplified bed state change detection
-  bed_state_history_key: "{{ room_name | lower }}_bed_state"
+  bed_state_history_key: "{{ room_name | lower | replace(' ', '_') }}_bed_state"
   
   # Current bed state
   current_bed_state: >-
