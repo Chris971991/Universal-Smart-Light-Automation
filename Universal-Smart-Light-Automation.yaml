@@ -228,12 +228,18 @@ blueprint:
       collapsed: true
       input:
         presence_pir_sensor:
-          name: Motion Sensor (PIR) *
+          name: Motion Sensor (PIR/mmWave/Radar) *
           description: >
-            **REQUIRED** - Primary motion detection sensor.
+            **REQUIRED** - Primary presence detection sensor. Works with any sensor type:
+            
             • PIR sensors (instant motion detection)
-            • Everything Presence PIR sensor
-            • Standard motion detectors
+            
+            • mmWave/radar sensors (stillness detection)
+            
+            • Any motion or occupancy sensor
+            
+            
+            💡 If you only have one sensor, use it here and also select it below.
           selector:
             entity:
               domain: binary_sensor
@@ -243,11 +249,16 @@ blueprint:
                 - presence
         
         presence_mmwave_sensor:
-          name: Occupancy Sensor (mmWave/Radar)
+          name: Occupancy Sensor (mmWave/PIR)
           description: >
-            **OPTIONAL** - Secondary sensor for stillness detection.
-            • mmWave/radar sensors
-            • Everything Presence occupancy sensor
+            **OPTIONAL** - Secondary sensor for enhanced detection.
+            
+            • Best: Combine PIR (fast motion) + mmWave (stillness detection)
+            
+            • mmWave/radar sensors (detects stationary presence)
+            
+            • PIR sensors (backup motion detection)
+            
             
             💡 TIP: If you only have one sensor, select the same sensor as above.
           default: ""
