@@ -228,7 +228,7 @@ blueprint:
       collapsed: true
       input:
         presence_pir_sensor:
-          name: Motion Sensor (PIR/mmWave/Radar) *
+          name: Motion Sensor (PIR/mmWave/Radar) - Primary Sensor *
           description: >
             **REQUIRED** - Primary presence detection sensor. Works with any sensor type:
             
@@ -249,7 +249,7 @@ blueprint:
                 - presence
         
         presence_mmwave_sensor:
-          name: Occupancy Sensor (mmWave/PIR)
+          name: Occupancy Sensor (mmWave/PIR) - Secondary Sensor
           description: >
             **OPTIONAL** - Secondary sensor for enhanced detection.
             
