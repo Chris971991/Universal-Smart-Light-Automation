@@ -41,42 +41,66 @@ blueprint:
     <details>
     <summary><b>⚠️ Required Helper Entities</b> (Click to expand)</summary>
     
+    
     **IMPORTANT**: Create these helpers BEFORE using this blueprint!
+    
     
     The `[room_name]` below must match what you'll enter in **Section 1: Room Setup → Room Name** field.
     
-    ⚠️ **Critical Rules:**
-    - Use **lowercase** only (no capitals)
-    - Use **underscores** for spaces (master_bedroom NOT master bedroom)
-    - No special characters (!@#$%^&*)
     
-    Replace `[room_name]` with your intended room name:
+    ⚠️ **Critical Rules:**
+    
+    • Use **lowercase** only (no capitals)
+    
+    • Use **underscores** for spaces (master_bedroom NOT master bedroom)
+    
+    • No special characters (!@#$%^&*)
+    
+    
+    **Replace `[room_name]` with your intended room name:**
+    
     
     1. `input_boolean.[room_name]_automation_active`
+    
     2. `input_boolean.[room_name]_manual_override`
+    
     3. `input_boolean.[room_name]_light_auto_on`
+    
     4. `input_boolean.[room_name]_occupancy_state`
+    
     5. `input_datetime.[room_name]_last_automation_action` *(Date AND Time enabled)*
+    
     6. `input_text.[room_name]_illuminance_history` *(Max length: 255)*
     
+    
     **Examples:**
-    - Single word: `office` → `input_boolean.office_automation_active`
-    - Multiple words: `master_bedroom` → `input_boolean.master_bedroom_automation_active`
-    - Living room: `living_room` → `input_boolean.living_room_automation_active`
+    
+    • Single word: `office` → `input_boolean.office_automation_active`
+    
+    • Multiple words: `master_bedroom` → `input_boolean.master_bedroom_automation_active`
+    
+    • Living room: `living_room` → `input_boolean.living_room_automation_active`
+    
     
     ❌ **Wrong:** `Master Bedroom`, `master-bedroom`, `master bedroom`
+    
     ✅ **Correct:** `master_bedroom`
     
+    
     💡 **Remember**: The Room Name in configuration must exactly match these helper names!
+    
     
     </details>
     
     <details>
     <summary><b>🔔 Update Notifications</b> (Optional)</summary>
     
+    
     Get notified when new versions are available!
     
-    1. Add to `configuration.yaml`:
+    
+    **1. Add to `configuration.yaml`:**
+    
     ```yaml
     sensor:
       - platform: rest
@@ -87,8 +111,31 @@ blueprint:
         scan_interval: 86400  # Time in seconds (86400 = 24 hours)
     ```
     
-    2. Restart Home Assistant
-    3. Enable "Check for Updates" in System & Diagnostics section
+    
+    **2. Restart Home Assistant**
+    
+    
+    **3. Enable "Check for Updates" in System & Diagnostics section**
+    
+    
+    **Customize Check Frequency** (scan_interval in seconds):
+    
+    • `86400` = 24 hours (1 day) - **Recommended**
+    
+    • `43200` = 12 hours (twice daily)
+    
+    • `604800` = 7 days (weekly)
+    
+    • `2592000` = 30 days (monthly)
+    
+    • `3600` = 1 hour - ⚠️ Not recommended (GitHub API rate limits)
+    
+    
+    **How to calculate:** Hours × 3600 = seconds (e.g., 6 hours = 6 × 3600 = 21600)
+    
+    
+    💡 **Note:** The automation also performs a check daily at 10:00 AM regardless of this setting.
+    
     
     </details>
     
