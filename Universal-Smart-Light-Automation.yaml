@@ -1236,24 +1236,20 @@ variables:
   is_periodic_trigger: "{{ trigger.platform == 'time_pattern' }}"
   is_sun_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == 'sun.sun' }}"
   
-  # FIXED v3.8.7: Simple direct bed trigger detection
+  # FIXED v3.8.7: Direct bed trigger detection
+  is_bed_entry_trigger: >-
+    {{ has_bed_sensor and trigger.id == 'bed_entry' }}
+  
+  is_bed_exit_trigger: >-
+    {{ has_bed_sensor and trigger.id == 'bed_exit' }}
+  
   is_bed_trigger: >-
-    {{ has_bed_sensor and trigger.id == 'bed_change' and trigger.from_state is defined and trigger.to_state is defined }}
+    {{ is_bed_entry_trigger or is_bed_exit_trigger }}
   
-  # Direct bed state change detection from trigger
-  bed_just_occupied: >-
-    {% if is_bed_trigger %}
-      {{ trigger.from_state.state == 'off' and trigger.to_state.state == 'on' }}
-    {% else %}
-      {{ false }}
-    {% endif %}
+  # Simple bed state detection from trigger ID
+  bed_just_occupied: "{{ is_bed_entry_trigger }}"
   
-  bed_just_vacated: >-
-    {% if is_bed_trigger %}
-      {{ trigger.from_state.state == 'on' and trigger.to_state.state == 'off' }}
-    {% else %}
-      {{ false }}
-    {% endif %}
+  bed_just_vacated: "{{ is_bed_exit_trigger }}"
   
   user_turned_on: "{{ is_primary_trigger and trigger.to_state.state == 'on' and trigger.from_state.state == 'off' }}"
   user_turned_off: "{{ is_primary_trigger and trigger.to_state.state == 'off' and trigger.from_state.state == 'on' }}"
@@ -1463,16 +1459,18 @@ trigger:
     entity_id: sun.sun
     id: sun_change
     
-  # Bed sensor trigger - handles bed state changes directly
-  - platform: template
-    value_template: >-
-      {% set bed_helper = bed_occupied_helper | default('') %}
-      {% if bed_helper != '' and bed_helper != None %}
-        {{ states(bed_helper) }}
-      {% else %}
-        none
-      {% endif %}
-    id: bed_change
+  # Bed sensor trigger - direct state monitoring
+  - platform: state
+    entity_id: !input bed_occupied_helper
+    from: 'off'
+    to: 'on'
+    id: bed_entry
+    
+  - platform: state
+    entity_id: !input bed_occupied_helper
+    from: 'on'
+    to: 'off'
+    id: bed_exit
     
   # Periodic checks for monitoring
   - platform: time_pattern
@@ -1492,10 +1490,13 @@ trigger:
 
 # Conditions
 condition:
-  # Skip if triggered by empty/invalid entity
+  # Skip if triggered by empty/invalid entity (but allow bed triggers to pass even if empty)
   - condition: template
     value_template: >-
-      {% if trigger.entity_id is defined %}
+      {% if trigger.id in ['bed_entry', 'bed_exit'] %}
+        {% set bed_helper = bed_occupied_helper | default('') %}
+        {{ bed_helper != '' and bed_helper != None }}
+      {% elif trigger.entity_id is defined %}
         {% if trigger.entity_id == '' or trigger.entity_id == None %}
           {{ false }}
         {% else %}
@@ -2457,12 +2458,27 @@ action:
           - condition: template
             value_template: "{{ is_bed_trigger }}"
         sequence:
+          - if:
+              - condition: template
+                value_template: "{{ enable_debug_logs }}"
+            then:
+              - service: system_log.write
+                data:
+                  level: warning
+                  message: >-
+                    [{{ room_name | upper }}] BED TRIGGER DETECTED!
+                    │ Type: {{ 'ENTRY' if is_bed_entry_trigger else 'EXIT' if is_bed_exit_trigger else 'UNKNOWN' }}
+                    │ Lights ON: {{ lights_on }}
+                    │ Turn off when bed occupied: {{ turn_off_when_bed_occupied }}
+                    │ Entry delay: {{ bed_entry_delay_seconds }}s
+                    │ Exit delay: {{ bed_exit_delay_seconds }}s
+          
           - choose:
               # BED JUST OCCUPIED - Turn lights OFF after delay
               - conditions:
                   - condition: template
                     value_template: >-
-                      {{ bed_just_occupied and
+                      {{ is_bed_entry_trigger and
                          turn_off_when_bed_occupied and
                          lights_on and
                          not (enable_guest_mode and guest_ignore_bed) }}
@@ -2527,7 +2543,7 @@ action:
               - conditions:
                   - condition: template
                     value_template: >-
-                      {{ bed_just_vacated and
+                      {{ is_bed_exit_trigger and
                          is_dark and
                          someone_present and
                          not lights_on }}
