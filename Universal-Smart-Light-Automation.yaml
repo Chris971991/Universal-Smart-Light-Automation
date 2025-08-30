@@ -2223,6 +2223,86 @@ action:
           - condition: template
             value_template: "{{ not manual_override }}"
       
+      # BED TRIGGER HANDLER - Process bed state changes with delays
+      - conditions:
+          - condition: template
+            value_template: "{{ is_bed_trigger }}"
+        sequence:
+          - service: system_log.write
+            data:
+              level: warning
+              message: "[{{ room_name | upper }}] BED TRIGGER DETECTED! Entry: {{ bed_just_occupied }}, Exit: {{ bed_just_vacated }}"
+          
+          - choose:
+              # Bed Entry - Turn lights OFF with delay
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ bed_just_occupied and
+                         turn_off_when_bed_occupied and
+                         lights_on and
+                         not (enable_guest_mode and guest_ignore_bed) }}
+                sequence:
+                  - service: system_log.write
+                    data:
+                      level: warning
+                      message: "[{{ room_name | upper }}] BED OCCUPIED - Waiting {{ bed_entry_delay_seconds }}s before turning OFF"
+                  
+                  - delay:
+                      seconds: "{{ bed_entry_delay_seconds }}"
+                  
+                  # Re-verify conditions after delay
+                  - condition: template
+                    value_template: >-
+                      {{ states(bed_occupied_helper) == 'on' and
+                         lights_on and
+                         is_state(manual_override_helper, 'off') }}
+                  
+                  - service: homeassistant.turn_off
+                    target:
+                      entity_id: "{{ light_switch }}"
+                  
+                  - service: system_log.write
+                    data:
+                      level: warning
+                      message: "[{{ room_name | upper }}] Bed entry delay complete - lights turned OFF"
+              
+              # Bed Exit - Turn lights ON with delay
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ bed_just_vacated and
+                         is_dark and
+                         room_occupied and
+                         not lights_on and
+                         not prevent_auto_on }}
+                sequence:
+                  - service: system_log.write
+                    data:
+                      level: warning
+                      message: "[{{ room_name | upper }}] BED VACATED - Waiting {{ bed_exit_delay_seconds }}s before turning ON"
+                  
+                  - delay:
+                      seconds: "{{ bed_exit_delay_seconds }}"
+                  
+                  # Re-verify conditions after delay
+                  - condition: template
+                    value_template: >-
+                      {{ states(bed_occupied_helper) == 'off' and
+                         room_occupied and
+                         is_dark and
+                         not lights_on and
+                         is_state(manual_override_helper, 'off') }}
+                  
+                  - service: homeassistant.turn_on
+                    target:
+                      entity_id: "{{ light_switch }}"
+                  
+                  - service: system_log.write
+                    data:
+                      level: warning
+                      message: "[{{ room_name | upper }}] Bed exit delay complete - lights turned ON"
+      
       # Automatic light control (with conditional logging)
       - conditions:
           - condition: template
