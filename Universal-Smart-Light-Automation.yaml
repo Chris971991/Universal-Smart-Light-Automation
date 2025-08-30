@@ -1637,8 +1637,6 @@ variables:
     {% endif %}
   
   primary_changed_seconds_ago: "{{ (current_time - primary_changed_time) | round(1) }}"
-  primary_recently_changed: "{{ primary_changed_seconds_ago < 2 }}"
-  primary_just_changed: "{{ primary_recently_changed }}"
   override_active_minutes: "{{ ((current_time - override_changed_time) / 60) | round(1) }}"
   room_vacant_minutes: >-
     {% if someone_present %}
@@ -2067,25 +2065,6 @@ action:
             [View Release Notes]({{ release_url }})
           notification_id: "universal_lighting_update_{{ room_name | lower }}"
   
-  # Check for active manual override (with conditional logging)
-  - if:
-      - condition: template
-        value_template: >-
-          {{ manual_override and not is_primary_trigger and
-            not (control_mode == 'switch_and_lights' and trigger.entity_id == light_switch) }}
-    then:
-      - if:
-          - condition: template
-            value_template: "{{ enable_debug_logs }}"
-        then:
-          - service: system_log.write
-            data:
-              level: info
-              message: >-
-                [{{ room_name | upper }}] Manual override active - skipping automation
-                │ Would have: {{ 'turned ON' if (is_dark and someone_present and not bed_occupied and not prevent_auto_on and not lights_on) else 'turned OFF' if (auto_would_turn_off and lights_on) else 'done nothing' }}
-      - stop: "Manual override active"
-  
   # Main automation logic with dynamic lighting
   - choose:
       # Manual Override Detection - User manually changed lights
@@ -2099,166 +2078,25 @@ action:
             then:
               - service: system_log.write
                 data:
-                  level: warning
-                  message: >-
-                    ┌─ {{ room_name | upper }} MANUAL CHANGE DETECTED ────────────────
-                    │ Action: Turned {{ 'ON' if user_turned_on else 'OFF' }}
-                    │ Entity: {{ trigger.entity_id }}
-                    │ Auto would: {{ 'turn ON' if auto_would_turn_on else 'turn OFF' if auto_would_turn_off else 'do nothing (prevented by daytime control)' if prevent_auto_on else 'do nothing' }}
-                    │ Illuminance: {{ illuminance }}lux
-                    │ Presence: {{ 'YES' if someone_present else 'NO' }}
-                    └────────────────────────────────────────────────────────────────
+                  message: >
+                    🔧 {{ room_name }}: Manual change detected.
+                    User turned {{ 'ON' if user_turned_on else 'OFF' }}
+                  level: info
+                  logger: "{{ this.entity_id }}"
           
-          # Determine if override should be set or cleared
-          - choose:
-              # Set override - user action conflicts with automation
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {{ (user_turned_on and (not auto_would_turn_on or prevent_auto_on)) or
-                         (user_turned_off and auto_would_turn_on and not prevent_auto_on) }}
-                sequence:
-                  - service: input_boolean.turn_on
-                    target:
-                      entity_id: "{{ manual_override_helper }}"
-                  - delay:
-                      milliseconds: 100
-                  - if:
-                      - condition: template
-                        value_template: "{{ enable_debug_logs }}"
-                    then:
-                      - service: system_log.write
-                        data:
-                          level: info
-                          message: >-
-                            [{{ room_name | upper }}] Manual override SET
-                            │ Reason: Conflicts with automation
-              
-              # Clear override - user action matches automation intent
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {% if has_bed_sensor and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}
-                        {{ false }}
-                      {% else %}
-                        {{ (user_turned_on and auto_would_turn_on and not prevent_auto_on) or
-                           (user_turned_off and auto_would_turn_off) }}
-                      {% endif %}
-                sequence:
-                  - service: input_boolean.turn_off
-                    target:
-                      entity_id: "{{ manual_override_helper }}"
-                  - if:
-                      - condition: template
-                        value_template: "{{ enable_debug_logs }}"
-                    then:
-                      - service: system_log.write
-                        data:
-                          level: info
-                          message: "[{{ room_name | upper }}] Override cleared - action matches automation"
-              
-              # Clear override - user turned off in bright room
-              - conditions:
-                  - condition: template
-                    value_template: "{{ user_turned_off and is_bright and someone_present }}"
-                sequence:
-                  - service: input_boolean.turn_off
-                    target:
-                      entity_id: "{{ manual_override_helper }}"
-                  - delay:
-                      milliseconds: 100
-                  - if:
-                      - condition: template
-                        value_template: "{{ enable_debug_logs }}"
-                    then:
-                      - service: system_log.write
-                        data:
-                          level: info
-                          message: "[{{ room_name | upper }}] Override cleared - lights off in bright room"
-              
-              # Default case - set override for other manual changes
-              - conditions:
-                  - condition: template
-                    value_template: >-
-                      {% set auto_on_recent = false %}
-                      {% if is_state(light_auto_on_helper, 'on') and user_turned_on %}
-                        {% if states[light_auto_on_helper] and states[light_auto_on_helper].last_changed %}
-                          {% set auto_on_changed = as_timestamp(states[light_auto_on_helper].last_changed, 0) %}
-                          {% if auto_on_changed > 0 %}
-                            {% set age = current_time - auto_on_changed %}
-                            {% set auto_on_recent = age < 5 %}
-                          {% endif %}
-                        {% endif %}
-                      {% endif %}
-                      
-                      {% set bed_auto_off = false %}
-                      {% if user_turned_off and turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}
-                        {% set bed_auto_off = true %}
-                      {% endif %}
-                      
-                      {% set threshold_gap = bright_threshold - dark_threshold %}
-                      
-                      {% set wants_dark_while_present = false %}
-                      {% if not bed_auto_off %}
-                        {% set wants_dark_while_present = user_turned_off and someone_present and not is_bright %}
-                      {% endif %}
-                      
-                      {% set wants_light_when_not_dark = user_turned_on and not is_dark and someone_present %}
-                      
-                      {% set fighting_automation = false %}
-                      {% if not bed_auto_off %}
-                        {% set fighting_automation = user_turned_off and light_was_auto_on and someone_present %}
-                      {% endif %}
-                      
-                      {% set extreme_override = false %}
-                      {% if not bed_auto_off %}
-                        {% set extreme_override = user_turned_off and is_extremely_dark and someone_present %}
-                      {% endif %}
-                      
-                      {% set narrow_threshold = threshold_gap <= 10 %}
-                      {% set middle_range_override = false %}
-                      {% if not bed_auto_off %}
-                        {% set middle_range_override = narrow_threshold and in_middle_range and someone_present %}
-                      {% endif %}
-                      
-                      {% set bed_override = false %}
-                      {% if has_bed_sensor and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}
-                        {% set bed_override = user_turned_on %}
-                      {% endif %}
-                      
-                      {{ not auto_on_recent and not bed_auto_off and (
-                        wants_dark_while_present or
-                        wants_light_when_not_dark or
-                        fighting_automation or
-                        extreme_override or
-                        middle_range_override or
-                        bed_override
-                      ) }}
-                sequence:
-                  - service: input_boolean.turn_on
-                    target:
-                      entity_id: "{{ manual_override_helper }}"
-                  - delay:
-                      milliseconds: 100
-                  - if:
-                      - condition: template
-                        value_template: "{{ enable_debug_logs }}"
-                    then:
-                      - service: system_log.write
-                        data:
-                          level: info
-                          message: >-
-                            [{{ room_name | upper }}] Manual override SET
-                            │ Reason: User preference
-          
-          # Clear auto-on flag
-          - service: input_boolean.turn_off
+          # Set manual override
+          - service: input_boolean.turn_on
             target:
-              entity_id: "{{ light_auto_on_helper }}"
+              entity_id: "{{ manual_override_helper }}"
           
-          # Stop if override was set
-          - condition: template
-            value_template: "{{ not manual_override }}"
+          # Track if lights were manually turned on
+          - if:
+              - condition: template
+                value_template: "{{ user_turned_on }}"
+            then:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: "{{ light_auto_on_helper }}"
       
       # Clear Override if Conditions Met
       - conditions:
@@ -2366,12 +2204,10 @@ action:
                   brightness_pct: "{{ adjusted_brightness }}"
                   transition: "{{ effective_fade_on_time }}"
       
-      # Automatic control evaluation - ONLY run if no manual override and not a recent primary change
+      # Automatic control evaluation
       - conditions:
           - condition: template
-            value_template: "{{ not manual_override }}"
-          - condition: template
-            value_template: "{{ not primary_recently_changed }}"
+            value_template: "{{ not manual_override and not primary_recently_changed }}"
         sequence:
           - if:
               - condition: template
@@ -2391,34 +2227,11 @@ action:
                     │ Should: {{ 'turn ON' if (auto_would_turn_on and not lights_on and not prevent_auto_on) else 'turn OFF' if (auto_would_turn_off and lights_on) else 'prevent auto-ON' if (prevent_auto_on and is_dark and someone_present and not lights_on) else 'do nothing' }}
           
           - choose:
-              # Automatic Turn ON - Presence detected and dark (ONLY if not prevented by daytime control)
+              # Automatic Turn ON - Presence detected and dark
               - conditions:
                   - condition: template
-                    value_template: "{{ not lights_on }}"
-                  - condition: template
-                    value_template: "{{ auto_would_turn_on }}"
-                  - condition: template
-                    value_template: "{{ not prevent_auto_on }}"
+                    value_template: "{{ not lights_on and auto_would_turn_on and not prevent_auto_on }}"
                 sequence:
-                  # Apply bed exit delay if needed
-                  - if:
-                      - condition: template
-                        value_template: "{{ has_bed_sensor and not bed_occupied }}"
-                      - condition: template
-                        value_template: "{{ states[occupancy_state_helper] and states[occupancy_state_helper].last_changed }}"
-                      - condition: template
-                        value_template: >-
-                          {% set occupancy_last_changed = as_timestamp(states[occupancy_state_helper].last_changed, 0) %}
-                          {% set time_since_change = current_time - occupancy_last_changed %}
-                          {{ time_since_change < bed_exit_delay_seconds }}
-                    then:
-                      - delay:
-                          seconds: "{{ bed_exit_delay_seconds }}"
-                      
-                      # Recheck conditions after delay
-                      - condition: template
-                        value_template: "{{ not manual_override and auto_would_turn_on and not lights_on and not prevent_auto_on }}"
-                  
                   - if:
                       - condition: template
                         value_template: "{{ enable_debug_logs }}"
@@ -2435,7 +2248,7 @@ action:
                             │ Illuminance: {{ illuminance }} lux
                             │ Night Light: {{ 'YES' if should_use_night_light else 'NO' }}
                             │ Guest Mode: {{ 'YES' if enable_guest_mode else 'NO' }}
-                            │ Bed Exit Delay: {{ bed_exit_delay_seconds }}s{% if has_bed_sensor and not bed_occupied %} (APPLIED ±5s){% endif %}
+                            │ Bed Exit Delay: {{ bed_exit_delay_seconds }}s{% if is_bed_trigger and not bed_occupied_raw %} (APPLIED ±5s){% endif %}
                             └────────────────────────────────────────────────────────────────
                   
                   # Set automation active flag
@@ -2677,18 +2490,16 @@ action:
                   {% set values = values[-9:] + [current] %}
                   [{{ values | join(',') }}]
                 {% endif %}
-    
-    # Decision summary logging only
-    default:
-      - if:
+      # Decision summary with performance metrics
+      - conditions:
           - condition: template
-            value_template: "{{ enable_debug_logs and is_periodic_trigger }}"
-        then:
+            value_template: "{{ enable_debug_logs }}"
+        sequence:
           - service: system_log.write
             data:
-              level: info
+              level: warning
               message: >-
-                [{{ room_name | upper }}] PERIODIC CHECK
+                [{{ room_name | upper }}] DECISION SUMMARY
                 ├─ Room Presence: {{ 'YES' if someone_present else 'NO' }}
                 ├─ Home Presence: {{ 'SOMEONE HOME' if someone_home else 'NOBODY HOME' }}
                 ├─ Daytime: {{ 'YES' if is_daytime_final else 'NO' }}
@@ -2699,9 +2510,10 @@ action:
                 ├─ Override: {{ 'ACTIVE' if manual_override else 'INACTIVE' }}
                 ├─ Night Light: {{ 'ACTIVE' if should_use_night_light else 'INACTIVE' }}
                 ├─ Bed Status: {% if has_bed_sensor %}{{ 'OCCUPIED' if bed_occupied else 'EMPTY' }}{% else %}N/A{% endif %}
+                ├─ Action Taken: {% if lights_on != (expand(light_entities) | selectattr('state', 'eq', 'on') | list | count > 0 if has_lights else is_state(light_switch, 'on') if has_switch else false) %}Lights {{ 'turned ON' if (expand(light_entities) | selectattr('state', 'eq', 'on') | list | count > 0 if has_lights else is_state(light_switch, 'on') if has_switch else false) else 'turned OFF' }}{% elif prevent_auto_on %}Auto-ON prevented{% else %}No change{% endif %}
+                ├─ Execution Time: {{ ((now().timestamp() - action_start_time) * 1000) | round(1) }}ms
                 └─ Performance: {% if ((now().timestamp() - start_time) * 1000) < 100 %}⚡ Excellent{% elif ((now().timestamp() - start_time) * 1000) < 500 %}✔ Good{% else %}⚠️ Slow{% endif %}
 
 # Mode - Restart to handle rapid changes
 mode: restart
 max_exceeded: silent
-      
