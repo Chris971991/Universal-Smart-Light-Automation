@@ -2364,10 +2364,12 @@ action:
                   brightness_pct: "{{ adjusted_brightness }}"
                   transition: "{{ effective_fade_on_time }}"
       
-      # Automatic control evaluation
+      # Automatic control evaluation - ONLY run if no manual override and not a recent primary change
       - conditions:
           - condition: template
-            value_template: "{{ not manual_override and not primary_recently_changed }}"
+            value_template: "{{ not manual_override }}"
+          - condition: template
+            value_template: "{{ not primary_recently_changed }}"
         sequence:
           - if:
               - condition: template
@@ -2387,10 +2389,14 @@ action:
                     │ Should: {{ 'turn ON' if (auto_would_turn_on and not lights_on and not prevent_auto_on) else 'turn OFF' if (auto_would_turn_off and lights_on) else 'prevent auto-ON' if (prevent_auto_on and is_dark and someone_present and not lights_on) else 'do nothing' }}
           
           - choose:
-              # Automatic Turn ON - Presence detected and dark
+              # Automatic Turn ON - Presence detected and dark (ONLY if not prevented by daytime control)
               - conditions:
                   - condition: template
-                    value_template: "{{ not lights_on and auto_would_turn_on and not prevent_auto_on }}"
+                    value_template: "{{ not lights_on }}"
+                  - condition: template
+                    value_template: "{{ auto_would_turn_on }}"
+                  - condition: template
+                    value_template: "{{ not prevent_auto_on }}"
                 sequence:
                   - if:
                       - condition: template
@@ -2677,4 +2683,3 @@ action:
 # Mode - Restart to handle rapid changes
 mode: restart
 max_exceeded: silent
-      
