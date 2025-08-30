@@ -1637,6 +1637,8 @@ variables:
     {% endif %}
   
   primary_changed_seconds_ago: "{{ (current_time - primary_changed_time) | round(1) }}"
+  primary_recently_changed: "{{ primary_changed_seconds_ago < 2 }}"
+  primary_just_changed: "{{ primary_recently_changed }}"
   override_active_minutes: "{{ ((current_time - override_changed_time) / 60) | round(1) }}"
   room_vacant_minutes: >-
     {% if someone_present %}
@@ -2398,6 +2400,25 @@ action:
                   - condition: template
                     value_template: "{{ not prevent_auto_on }}"
                 sequence:
+                  # Apply bed exit delay if needed
+                  - if:
+                      - condition: template
+                        value_template: "{{ has_bed_sensor and not bed_occupied }}"
+                      - condition: template
+                        value_template: "{{ states[occupancy_state_helper] and states[occupancy_state_helper].last_changed }}"
+                      - condition: template
+                        value_template: >-
+                          {% set occupancy_last_changed = as_timestamp(states[occupancy_state_helper].last_changed, 0) %}
+                          {% set time_since_change = current_time - occupancy_last_changed %}
+                          {{ time_since_change < bed_exit_delay_seconds }}
+                    then:
+                      - delay:
+                          seconds: "{{ bed_exit_delay_seconds }}"
+                      
+                      # Recheck conditions after delay
+                      - condition: template
+                        value_template: "{{ not manual_override and auto_would_turn_on and not lights_on and not prevent_auto_on }}"
+                  
                   - if:
                       - condition: template
                         value_template: "{{ enable_debug_logs }}"
@@ -2414,7 +2435,7 @@ action:
                             │ Illuminance: {{ illuminance }} lux
                             │ Night Light: {{ 'YES' if should_use_night_light else 'NO' }}
                             │ Guest Mode: {{ 'YES' if enable_guest_mode else 'NO' }}
-                            │ Bed Exit Delay: {{ bed_exit_delay_seconds }}s{% if is_bed_trigger and not bed_occupied_raw %} (APPLIED ±5s){% endif %}
+                            │ Bed Exit Delay: {{ bed_exit_delay_seconds }}s{% if has_bed_sensor and not bed_occupied %} (APPLIED ±5s){% endif %}
                             └────────────────────────────────────────────────────────────────
                   
                   # Set automation active flag
@@ -2656,16 +2677,18 @@ action:
                   {% set values = values[-9:] + [current] %}
                   [{{ values | join(',') }}]
                 {% endif %}
-      # Decision summary with performance metrics
-      - conditions:
+    
+    # Decision summary logging only
+    default:
+      - if:
           - condition: template
-            value_template: "{{ enable_debug_logs }}"
-        sequence:
+            value_template: "{{ enable_debug_logs and is_periodic_trigger }}"
+        then:
           - service: system_log.write
             data:
-              level: warning
+              level: info
               message: >-
-                [{{ room_name | upper }}] DECISION SUMMARY
+                [{{ room_name | upper }}] PERIODIC CHECK
                 ├─ Room Presence: {{ 'YES' if someone_present else 'NO' }}
                 ├─ Home Presence: {{ 'SOMEONE HOME' if someone_home else 'NOBODY HOME' }}
                 ├─ Daytime: {{ 'YES' if is_daytime_final else 'NO' }}
@@ -2676,10 +2699,9 @@ action:
                 ├─ Override: {{ 'ACTIVE' if manual_override else 'INACTIVE' }}
                 ├─ Night Light: {{ 'ACTIVE' if should_use_night_light else 'INACTIVE' }}
                 ├─ Bed Status: {% if has_bed_sensor %}{{ 'OCCUPIED' if bed_occupied else 'EMPTY' }}{% else %}N/A{% endif %}
-                ├─ Action Taken: {% if lights_on != (expand(light_entities) | selectattr('state', 'eq', 'on') | list | count > 0 if has_lights else is_state(light_switch, 'on') if has_switch else false) %}Lights {{ 'turned ON' if (expand(light_entities) | selectattr('state', 'eq', 'on') | list | count > 0 if has_lights else is_state(light_switch, 'on') if has_switch else false) else 'turned OFF' }}{% elif prevent_auto_on %}Auto-ON prevented{% else %}No change{% endif %}
-                ├─ Execution Time: {{ ((now().timestamp() - action_start_time) * 1000) | round(1) }}ms
                 └─ Performance: {% if ((now().timestamp() - start_time) * 1000) < 100 %}⚡ Excellent{% elif ((now().timestamp() - start_time) * 1000) < 500 %}✔ Good{% else %}⚠️ Slow{% endif %}
 
 # Mode - Restart to handle rapid changes
 mode: restart
 max_exceeded: silent
+      
