@@ -49,7 +49,7 @@ blueprint:
     4. `input_datetime.[room_name]_last_automation_action` (MUST have both date AND time enabled)
     5. `input_boolean.[room_name]_occupancy_state`
     6. `input_text.[room_name]_illuminance_history`
-    7. `input_text.[room_name]_bed_state_tracker` (REQUIRED if using bed sensor - tracks bed state changes)
+    7. `input_text.[room_name]_bed_state` (REQUIRED if using bed sensor - tracks bed state changes for delays)
     
     Replace [room_name] with your actual room name in LOWERCASE (e.g., office, bedroom, living_room)
 
@@ -1236,20 +1236,50 @@ variables:
   is_periodic_trigger: "{{ trigger.platform == 'time_pattern' }}"
   is_sun_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == 'sun.sun' }}"
   
-  # FIXED v3.8.7: Direct bed trigger detection
-  is_bed_entry_trigger: >-
-    {{ has_bed_sensor and trigger.id == 'bed_entry' }}
+  # FIXED v3.8.7: Bed state change detection with history tracking
+  # Store the last bed state in a variable to detect changes
+  bed_state_history_key: "{{ room_name | lower }}_bed_state"
   
-  is_bed_exit_trigger: >-
-    {{ has_bed_sensor and trigger.id == 'bed_exit' }}
+  # Get last known bed state from input_text helper
+  last_bed_state: >-
+    {% if has_bed_sensor %}
+      {% set history_helper = 'input_text.' ~ bed_state_history_key %}
+      {% if states[history_helper] %}
+        {{ states(history_helper) }}
+      {% else %}
+        unknown
+      {% endif %}
+    {% else %}
+      unknown
+    {% endif %}
   
-  is_bed_trigger: >-
-    {{ is_bed_entry_trigger or is_bed_exit_trigger }}
+  # Current bed state
+  current_bed_state: >-
+    {% if has_bed_sensor %}
+      {{ 'on' if bed_occupied_raw else 'off' }}
+    {% else %}
+      unknown
+    {% endif %}
   
-  # Simple bed state detection from trigger ID
-  bed_just_occupied: "{{ is_bed_entry_trigger }}"
+  # Detect bed state changes
+  bed_state_changed: >-
+    {% if has_bed_sensor and last_bed_state in ['on', 'off'] %}
+      {{ current_bed_state != last_bed_state }}
+    {% else %}
+      {{ false }}
+    {% endif %}
   
-  bed_just_vacated: "{{ is_bed_exit_trigger }}"
+  # Bed triggers based on state changes
+  is_bed_trigger: "{{ has_bed_sensor and is_periodic_trigger and bed_state_changed }}"
+  
+  bed_just_occupied: >-
+    {{ is_bed_trigger and current_bed_state == 'on' and last_bed_state == 'off' }}
+  
+  bed_just_vacated: >-
+    {{ is_bed_trigger and current_bed_state == 'off' and last_bed_state == 'on' }}
+  
+  is_bed_entry_trigger: "{{ bed_just_occupied }}"
+  is_bed_exit_trigger: "{{ bed_just_vacated }}"
   
   user_turned_on: "{{ is_primary_trigger and trigger.to_state.state == 'on' and trigger.from_state.state == 'off' }}"
   user_turned_off: "{{ is_primary_trigger and trigger.to_state.state == 'off' and trigger.from_state.state == 'on' }}"
@@ -1459,22 +1489,9 @@ trigger:
     entity_id: sun.sun
     id: sun_change
     
-  # Bed sensor trigger - direct state monitoring
-  - platform: state
-    entity_id: !input bed_occupied_helper
-    from: 'off'
-    to: 'on'
-    id: bed_entry
-    
-  - platform: state
-    entity_id: !input bed_occupied_helper
-    from: 'on'
-    to: 'off'
-    id: bed_exit
-    
-  # Periodic checks for monitoring
+  # Periodic checks (handles bed sensor and other monitoring)
   - platform: time_pattern
-    seconds: "/5"  # Check every 5 seconds for monitoring
+    seconds: "/2"  # Check every 2 seconds for responsive bed delays
     id: periodic_check
   
   # Check for updates periodically
@@ -1490,13 +1507,10 @@ trigger:
 
 # Conditions
 condition:
-  # Skip if triggered by empty/invalid entity (but allow bed triggers to pass even if empty)
+  # Skip if triggered by empty/invalid entity
   - condition: template
     value_template: >-
-      {% if trigger.id in ['bed_entry', 'bed_exit'] %}
-        {% set bed_helper = bed_occupied_helper | default('') %}
-        {{ bed_helper != '' and bed_helper != None }}
-      {% elif trigger.entity_id is defined %}
+      {% if trigger.entity_id is defined %}
         {% if trigger.entity_id == '' or trigger.entity_id == None %}
           {{ false }}
         {% else %}
@@ -1814,6 +1828,32 @@ action:
     data:
       notification_id: "{{ room_name }}_tracker_warning"
     continue_on_error: true
+  
+  # Update bed state history if changed
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ has_bed_sensor and bed_state_changed }}"
+        sequence:
+          # Update the bed state history
+          - service: input_text.set_value
+            data:
+              entity_id: "{{ 'input_text.' ~ bed_state_history_key }}"
+              value: "{{ current_bed_state }}"
+            continue_on_error: true
+          
+          - if:
+              - condition: template
+                value_template: "{{ enable_debug_logs }}"
+            then:
+              - service: system_log.write
+                data:
+                  level: warning
+                  message: >-
+                    [{{ room_name | upper }}] BED STATE CHANGED
+                    │ Previous: {{ last_bed_state | upper }}
+                    │ Current: {{ current_bed_state | upper }}
+                    │ Will trigger: {{ 'ENTRY delay' if bed_just_occupied else 'EXIT delay' if bed_just_vacated else 'nothing' }}
   
   # Update illuminance history
   - choose:
