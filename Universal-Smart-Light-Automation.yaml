@@ -2267,7 +2267,7 @@ action:
                   # Set a flag to indicate bed delay is in progress
                   - service: input_text.set_value
                     data:
-                      entity_id: "{{ bed_occupied_helper }}"
+                      entity_id: "{{ 'input_text.' ~ bed_state_history_key }}"
                       value: "delaying_off"
                   
                   - delay:
@@ -2323,7 +2323,7 @@ action:
                   # Set a flag to indicate bed delay is in progress
                   - service: input_text.set_value
                     data:
-                      entity_id: "{{ bed_occupied_helper }}"
+                      entity_id: "{{ 'input_text.' ~ bed_state_history_key }}"
                       value: "delaying_on"
                   
                   - delay:
