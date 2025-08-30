@@ -1,19 +1,69 @@
 blueprint:
   name: Universal Smart Presence Lighting Control - Enhanced v3.8.7
   description: >
-    # Universal Smart Presence Lighting Control - Enhanced Version 3.8.7
+    # 💡 Universal Smart Presence Lighting Control
+    **Version 3.8.7** | [GitHub](https://github.com/Chris971991/universal-smart-light-automation) | [Report Issues](https://github.com/Chris971991/universal-smart-light-automation/issues)
     
-    Intelligently manages your lighting based on room occupancy, light levels, and manual controls.
-    Works perfectly for ANY room - bedrooms, offices, living rooms, kitchens, bathrooms, etc.
+    *The most comprehensive lighting automation for Home Assistant - one blueprint to rule them all!*
+    
+    This advanced automation intelligently manages your lights using presence detection, ambient light sensing, and adaptive brightness control. It learns from your manual interactions, respects your preferences, and seamlessly adapts to different times of day. Whether it's a bedroom with sleep detection, an office with productivity lighting, or a living room with guest mode - this single blueprint handles it all with sophisticated logic that just works.
+    
+    **Perfect for:** Bedrooms • Living Rooms • Offices • Kitchens • Bathrooms • Hallways • Any Space
     
     ---
     
-    ## 📄 Automatic Update Notifications (Optional)
+    <details>
+    <summary><b>✨ Key Features</b></summary>
     
-    Get notified when new blueprint versions are available! To enable this feature:
+    - 🎯 **Universal Design** - Works for ANY room type
+    - 🏠 **Smart Presence Detection** - PIR, mmWave, and occupancy sensors
+    - 💡 **Adaptive Lighting** - Brightness & color temperature by time of day
+    - 🛏️ **Bedroom Mode** - Full bed sensor integration with delays
+    - 🔧 **Manual Override** - Respects your manual control
+    - ⚡ **Energy Saving** - Daytime control & away mode
+    - 👥 **Guest Mode** - Special behavior for visitors
     
-    **Step 1:** Add this sensor to your configuration.yaml file:
+    </details>
     
+    <details>
+    <summary><b>⚠️ Required Helper Entities</b> (Click to expand)</summary>
+    
+    **IMPORTANT**: Create these helpers BEFORE using this blueprint!
+    
+    The `[room_name]` below must match what you'll enter in **Section 1: Room Setup → Room Name** field.
+    
+    ⚠️ **Critical Rules:**
+    - Use **lowercase** only (no capitals)
+    - Use **underscores** for spaces (master_bedroom NOT master bedroom)
+    - No special characters (!@#$%^&*)
+    
+    Replace `[room_name]` with your intended room name:
+    
+    1. `input_boolean.[room_name]_automation_active`
+    2. `input_boolean.[room_name]_manual_override`
+    3. `input_boolean.[room_name]_light_auto_on`
+    4. `input_boolean.[room_name]_occupancy_state`
+    5. `input_datetime.[room_name]_last_automation_action` *(Date AND Time enabled)*
+    6. `input_text.[room_name]_illuminance_history` *(Max length: 255)*
+    
+    **Examples:**
+    - Single word: `office` → `input_boolean.office_automation_active`
+    - Multiple words: `master_bedroom` → `input_boolean.master_bedroom_automation_active`
+    - Living room: `living_room` → `input_boolean.living_room_automation_active`
+    
+    ❌ **Wrong:** `Master Bedroom`, `master-bedroom`, `master bedroom`
+    ✅ **Correct:** `master_bedroom`
+    
+    💡 **Remember**: The Room Name in configuration must exactly match these helper names!
+    
+    </details>
+    
+    <details>
+    <summary><b>🔔 Update Notifications</b> (Optional)</summary>
+    
+    Get notified when new versions are available!
+    
+    1. Add to `configuration.yaml`:
     ```yaml
     sensor:
       - platform: rest
@@ -21,36 +71,25 @@ blueprint:
         resource: https://api.github.com/repos/Chris971991/universal-smart-light-automation/releases/latest
         value_template: >
           {{ '{{' }} value_json.tag_name | default('unknown') {{ '}}' }}
-        scan_interval: 86400
+        scan_interval: 86400  # Time in seconds (86400 = 24 hours)
     ```
     
-    **Step 2:** Restart Home Assistant
+    2. Restart Home Assistant
+    3. Enable "Check for Updates" in System & Diagnostics section
     
-    **Step 3:** Enable the "Check for Updates" option at the bottom of this configuration
+    </details>
     
-    ## 🎯 UNIVERSAL DESIGN
+    <details>
+    <summary><b>📚 Quick Start Guide</b></summary>
     
-    This single blueprint works for ALL room types:
-    • **Bedrooms** - Full bed sensor integration with WORKING delays (v3.8.7)
-    • **Living Areas** - Standard presence-based control
-    • **Offices** - Productivity-focused lighting
-    • **Any Room** - Fully customizable behavior
+    1. ✅ Create all required helper entities (see above)
+    2. ✅ Create automation from this blueprint
+    3. ✅ Configure Room Setup section
+    4. ✅ Set up Presence Detection
+    5. ✅ Adjust Light Level thresholds
+    6. ✅ Optional: Configure advanced features
     
-    ## REQUIRED HELPER ENTITIES
-
-    Before using this blueprint, you MUST create these helper entities.
-    
-    **IMPORTANT**: All entity IDs must be lowercase! If your room name is "Office", 
-    the helpers should use "office" (lowercase) in their entity IDs.
-    
-    1. `input_boolean.[room_name]_automation_active`
-    2. `input_boolean.[room_name]_manual_override`
-    3. `input_boolean.[room_name]_light_auto_on`
-    4. `input_datetime.[room_name]_last_automation_action` (MUST have both date AND time enabled)
-    5. `input_boolean.[room_name]_occupancy_state`
-    6. `input_text.[room_name]_illuminance_history`
-    
-    Replace [room_name] with your actual room name in LOWERCASE (e.g., office, bedroom, living_room)
+    </details>
 
   domain: automation
   input:
