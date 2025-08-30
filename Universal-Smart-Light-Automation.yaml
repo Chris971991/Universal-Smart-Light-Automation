@@ -1203,19 +1203,33 @@ variables:
   primary_recently_changed: "{{ primary_changed_seconds_ago < 2 }}"
   override_recently_set: "{{ manual_override and (current_time - override_changed_time) < 5 }}"
   
-  # Enhanced manual change detection
+  # Enhanced manual change detection (excludes bed-triggered changes)
   is_manual_change: >-
     {% if trigger.platform != 'state' %}
       {{ false }}
     {% elif control_mode == 'switch_only' and trigger.entity_id == light_switch %}
-      {% if automation_active and not automation_active_stale and time_since_last_automation < 1 %}
+      {# Check if this was triggered by bed delay completion #}
+      {% set bed_state_entity = 'input_text.' ~ bed_state_history_key %}
+      {% set bed_state_value = states(bed_state_entity) %}
+      {% set bed_state_changed_recently = (now() - states[bed_state_entity].last_changed).total_seconds() < 5 if bed_state_entity in states.input_text else false %}
+      {% if bed_state_value in ['on', 'off'] and bed_state_changed_recently %}
+        {# Bed state just changed from delay to on/off - this is bed-triggered, not manual #}
+        {{ false }}
+      {% elif automation_active and not automation_active_stale and time_since_last_automation < 1 %}
         {{ false }}
       {% else %}
         {{ true }}
       {% endif %}
     {% elif control_mode != 'switch_only' and trigger.entity_id in light_entities %}
-      {% if automation_active and not automation_active_stale and time_since_last_automation < 1 %}
-        {{ false }}
+      {# Check if this was triggered by bed delay completion #}
+      {% set bed_state_entity = 'input_text.' ~ bed_state_history_key %}
+      {% set bed_state_value = states(bed_state_entity) %}
+      {% set bed_state_changed_recently = (now() - states[bed_state_entity].last_changed).total_seconds() < 5 if bed_state_entity in states.input_text else false %}
+      {% if bed_state_value in ['on', 'off'] and bed_state_changed_recently %}
+        {# Bed state just changed from delay to on/off - this is bed-triggered, not manual #}
+        {{ false %}
+      {% elif automation_active and not automation_active_stale and time_since_last_automation < 1 %}
+        {{ false %}
       {% else %}
         {{ true }}
       {% endif %}
