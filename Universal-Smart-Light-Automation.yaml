@@ -2251,11 +2251,21 @@ action:
                   - delay:
                       seconds: "{{ bed_entry_delay_seconds }}"
                   
+                  # Debug log before re-verification
+                  - service: system_log.write
+                    data:
+                      level: warning
+                      message: >-
+                        [{{ room_name | upper }}] POST-DELAY CHECK:
+                        bed_occupied={{ states(bed_occupied_helper) }},
+                        lights_on={{ lights_on }},
+                        manual_override={{ states(manual_override_helper) }}
+                  
                   # Re-verify conditions after delay
                   - condition: template
                     value_template: >-
                       {{ states(bed_occupied_helper) == 'on' and
-                         lights_on and
+                         states(light_switch) == 'on' and
                          is_state(manual_override_helper, 'off') }}
                   
                   - service: homeassistant.turn_off
@@ -2285,13 +2295,25 @@ action:
                   - delay:
                       seconds: "{{ bed_exit_delay_seconds }}"
                   
+                  # Debug log before re-verification
+                  - service: system_log.write
+                    data:
+                      level: warning
+                      message: >-
+                        [{{ room_name | upper }}] POST-DELAY CHECK:
+                        bed_occupied={{ states(bed_occupied_helper) }},
+                        someone_present={{ someone_present }},
+                        is_dark={{ is_dark }},
+                        lights_on={{ lights_on }},
+                        manual_override={{ states(manual_override_helper) }}
+                  
                   # Re-verify conditions after delay
                   - condition: template
                     value_template: >-
                       {{ states(bed_occupied_helper) == 'off' and
                          someone_present and
                          is_dark and
-                         not lights_on and
+                         states(light_switch) == 'off' and
                          is_state(manual_override_helper, 'off') }}
                   
                   - service: homeassistant.turn_on
