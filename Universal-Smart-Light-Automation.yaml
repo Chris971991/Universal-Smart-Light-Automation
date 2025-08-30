@@ -1234,24 +1234,46 @@ variables:
   is_illuminance_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == illuminance_sensor }}"
   is_periodic_trigger: "{{ trigger.platform == 'time_pattern' }}"
   is_sun_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == 'sun.sun' }}"
-  # FIXED v3.8.7: Direct bed trigger detection
-  is_bed_trigger: >-
-    {{ has_bed_sensor and trigger.id == 'bed_change' }}
   
-  # Bed state change detection
-  bed_just_occupied: >-
-    {% if is_bed_trigger %}
-      {{ trigger.to_state.state == 'on' and trigger.from_state.state == 'off' }}
+  # FIXED v3.8.7: Bed trigger detection via state change monitoring
+  bed_changed_recently: >-
+    {% if has_bed_sensor and states[bed_occupied_helper] %}
+      {% set last_change = as_timestamp(states[bed_occupied_helper].last_changed, 0) %}
+      {% if last_change > 0 %}
+        {{ (now().timestamp() - last_change) < 2 }}
+      {% else %}
+        {{ false }}
+      {% endif %}
     {% else %}
       {{ false }}
     {% endif %}
+  
+  # Check previous bed state for change detection
+  bed_previous_state: >-
+    {% if has_bed_sensor and states[bed_occupied_helper] %}
+      {% set last_change = states[bed_occupied_helper].last_changed %}
+      {% if last_change and (now().timestamp() - as_timestamp(last_change, 0)) < 2 %}
+        {% if states[bed_occupied_helper].state == 'on' %}
+          off
+        {% else %}
+          on
+        {% endif %}
+      {% else %}
+        unknown
+      {% endif %}
+    {% else %}
+      unknown
+    {% endif %}
+  
+  # Bed state change detection (works with periodic trigger)
+  is_bed_trigger: >-
+    {{ has_bed_sensor and is_periodic_trigger and bed_changed_recently }}
+  
+  bed_just_occupied: >-
+    {{ is_bed_trigger and bed_occupied_raw and bed_previous_state == 'off' }}
   
   bed_just_vacated: >-
-    {% if is_bed_trigger %}
-      {{ trigger.to_state.state == 'off' and trigger.from_state.state == 'on' }}
-    {% else %}
-      {{ false }}
-    {% endif %}
+    {{ is_bed_trigger and not bed_occupied_raw and bed_previous_state == 'on' }}
   
   user_turned_on: "{{ is_primary_trigger and trigger.to_state.state == 'on' and trigger.from_state.state == 'off' }}"
   user_turned_off: "{{ is_primary_trigger and trigger.to_state.state == 'off' and trigger.from_state.state == 'on' }}"
@@ -1461,20 +1483,9 @@ trigger:
     entity_id: sun.sun
     id: sun_change
     
-  # Bed sensor trigger (only added if configured)
-  - platform: state
-    entity_id: !input bed_occupied_helper
-    id: bed_change
-    from:
-      - 'on'
-      - 'off'
-    to:
-      - 'on'
-      - 'off'
-    
-  # Periodic checks for monitoring
+  # Periodic checks (handles bed sensor and other monitoring)
   - platform: time_pattern
-    seconds: "/5"  # Check every 5 seconds for monitoring
+    seconds: "/2"  # Check every 2 seconds for responsive bed delays when configured
     id: periodic_check
   
   # Check for updates periodically
@@ -1490,13 +1501,11 @@ trigger:
 
 # Conditions
 condition:
-  # Skip if triggered by empty/invalid entity (but allow bed sensor to be empty)
+  # Skip if triggered by empty/invalid entity
   - condition: template
     value_template: >-
       {% if trigger.entity_id is defined %}
-        {% if trigger.id == 'bed_change' and (bed_occupied_helper == '' or bed_occupied_helper == None) %}
-          {{ false }}
-        {% elif trigger.entity_id == '' or trigger.entity_id == None %}
+        {% if trigger.entity_id == '' or trigger.entity_id == None %}
           {{ false }}
         {% else %}
           {{ true }}
