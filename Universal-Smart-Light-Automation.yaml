@@ -1523,6 +1523,16 @@ condition:
       {{ trigger.id == 'periodic_check' or trigger.id == 'update_check' or trigger.id == 'update_sensor_changed' or
          (trigger.from_state is defined and trigger.to_state is defined and
           trigger.from_state.state != trigger.to_state.state) }}
+  
+  # Don't restart if bed delay is in progress (to prevent interrupting delays)
+  - condition: template
+    value_template: >-
+      {% if has_bed_sensor %}
+        {% set bed_state = states(bed_occupied_helper) %}
+        {{ bed_state not in ['delaying_off', 'delaying_on'] }}
+      {% else %}
+        {{ true }}
+      {% endif %}
 
 # Actions
 action:
@@ -2248,6 +2258,12 @@ action:
                       level: warning
                       message: "[{{ room_name | upper }}] BED OCCUPIED - Waiting {{ bed_entry_delay_seconds }}s before turning OFF"
                   
+                  # Set a flag to indicate bed delay is in progress
+                  - service: input_text.set_value
+                    data:
+                      entity_id: "{{ bed_occupied_helper }}"
+                      value: "delaying_off"
+                  
                   - delay:
                       seconds: "{{ bed_entry_delay_seconds }}"
                   
@@ -2276,6 +2292,12 @@ action:
                     data:
                       level: warning
                       message: "[{{ room_name | upper }}] Bed entry delay complete - lights turned OFF"
+                  
+                  # Clear the delay flag
+                  - service: input_text.set_value
+                    data:
+                      entity_id: "{{ bed_occupied_helper }}"
+                      value: "on"
               
               # Bed Exit - Turn lights ON with delay
               - conditions:
@@ -2291,6 +2313,12 @@ action:
                     data:
                       level: warning
                       message: "[{{ room_name | upper }}] BED VACATED - Waiting {{ bed_exit_delay_seconds }}s before turning ON"
+                  
+                  # Set a flag to indicate bed delay is in progress
+                  - service: input_text.set_value
+                    data:
+                      entity_id: "{{ bed_occupied_helper }}"
+                      value: "delaying_on"
                   
                   - delay:
                       seconds: "{{ bed_exit_delay_seconds }}"
@@ -2324,6 +2352,12 @@ action:
                     data:
                       level: warning
                       message: "[{{ room_name | upper }}] Bed exit delay complete - lights turned ON"
+                  
+                  # Clear the delay flag
+                  - service: input_text.set_value
+                    data:
+                      entity_id: "{{ bed_occupied_helper }}"
+                      value: "off"
       
       # Automatic light control (with conditional logging)
       - conditions:
