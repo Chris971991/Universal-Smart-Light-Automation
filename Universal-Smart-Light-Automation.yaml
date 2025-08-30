@@ -1203,6 +1203,9 @@ variables:
   primary_recently_changed: "{{ primary_changed_seconds_ago < 2 }}"
   override_recently_set: "{{ manual_override and (current_time - override_changed_time) < 5 }}"
   
+  # Bed state tracking key (moved up for use in is_manual_change)
+  bed_state_history_key: "{{ room_name | lower | replace(' ', '_') }}_bed_state"
+  
   # Enhanced manual change detection (excludes bed-triggered changes)
   is_manual_change: >-
     {% if trigger.platform != 'state' %}
@@ -1257,9 +1260,6 @@ variables:
   is_illuminance_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == illuminance_sensor }}"
   is_periodic_trigger: "{{ trigger.platform == 'time_pattern' }}"
   is_sun_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == 'sun.sun' }}"
-  
-  # FIXED v3.8.7: Simplified bed state change detection
-  bed_state_history_key: "{{ room_name | lower | replace(' ', '_') }}_bed_state"
   
   # Current bed state
   current_bed_state: >-
