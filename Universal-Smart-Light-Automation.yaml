@@ -1236,22 +1236,8 @@ variables:
   is_periodic_trigger: "{{ trigger.platform == 'time_pattern' }}"
   is_sun_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == 'sun.sun' }}"
   
-  # FIXED v3.8.7: Bed state change detection with history tracking
-  # Store the last bed state in a variable to detect changes
+  # FIXED v3.8.7: Simplified bed state change detection
   bed_state_history_key: "{{ room_name | lower }}_bed_state"
-  
-  # Get last known bed state from input_text helper
-  last_bed_state: >-
-    {% if has_bed_sensor %}
-      {% set history_helper = 'input_text.' ~ bed_state_history_key %}
-      {% if states[history_helper] %}
-        {{ states(history_helper) }}
-      {% else %}
-        unknown
-      {% endif %}
-    {% else %}
-      unknown
-    {% endif %}
   
   # Current bed state
   current_bed_state: >-
@@ -1261,22 +1247,32 @@ variables:
       unknown
     {% endif %}
   
-  # Detect bed state changes
+  # Get last bed state with proper fallback
+  last_bed_state: >-
+    {% if has_bed_sensor %}
+      {% set history_helper = 'input_text.' ~ bed_state_history_key %}
+      {% if states[history_helper] and states(history_helper) in ['on', 'off'] %}
+        {{ states(history_helper) }}
+      {% else %}
+        {{ 'off' if current_bed_state == 'on' else 'on' }}
+      {% endif %}
+    {% else %}
+      unknown
+    {% endif %}
+  
+  # Detect bed state changes - simple comparison
   bed_state_changed: >-
-    {% if has_bed_sensor and last_bed_state in ['on', 'off'] %}
-      {{ current_bed_state != last_bed_state }}
+    {% if has_bed_sensor %}
+      {{ current_bed_state != last_bed_state and last_bed_state in ['on', 'off'] }}
     {% else %}
       {{ false }}
     {% endif %}
   
-  # Bed triggers based on state changes
+  # Bed triggers - only true when state actually changed
   is_bed_trigger: "{{ has_bed_sensor and is_periodic_trigger and bed_state_changed }}"
   
-  bed_just_occupied: >-
-    {{ is_bed_trigger and current_bed_state == 'on' and last_bed_state == 'off' }}
-  
-  bed_just_vacated: >-
-    {{ is_bed_trigger and current_bed_state == 'off' and last_bed_state == 'on' }}
+  bed_just_occupied: "{{ is_bed_trigger and current_bed_state == 'on' }}"
+  bed_just_vacated: "{{ is_bed_trigger and current_bed_state == 'off' }}"
   
   is_bed_entry_trigger: "{{ bed_just_occupied }}"
   is_bed_exit_trigger: "{{ bed_just_vacated }}"
@@ -1284,21 +1280,17 @@ variables:
   user_turned_on: "{{ is_primary_trigger and trigger.to_state.state == 'on' and trigger.from_state.state == 'off' }}"
   user_turned_off: "{{ is_primary_trigger and trigger.to_state.state == 'off' and trigger.from_state.state == 'on' }}"
   
-  # Automation intent with daytime control - SIMPLIFIED for bed sensor
+  # Automation intent with daytime control - EXCLUDES bed sensor (handled separately with delays)
   auto_would_turn_on: >-
     {% if prevent_auto_on %}
-      {{ false }}
-    {% elif bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}
       {{ false }}
     {% else %}
       {{ is_dark and someone_present }}
     {% endif %}
   
-  # Turn OFF is always allowed (energy saving) - includes bed occupancy
+  # Turn OFF is always allowed (energy saving) - EXCLUDES bed occupancy (handled separately with delays)
   auto_would_turn_off: >-
     {% if not someone_present and lights_on %}
-      {{ true }}
-    {% elif has_bed_sensor and turn_off_when_bed_occupied and bed_occupied and lights_on and not (enable_guest_mode and guest_ignore_bed) %}
       {{ true }}
     {% else %}
       {{ false }}
@@ -1829,31 +1821,55 @@ action:
       notification_id: "{{ room_name }}_tracker_warning"
     continue_on_error: true
   
-  # Update bed state history if changed
+  # Initialize or update bed state history
   - choose:
+      # Initialize bed state if not set or update if changed
       - conditions:
           - condition: template
-            value_template: "{{ has_bed_sensor and bed_state_changed }}"
+            value_template: >-
+              {% if has_bed_sensor %}
+                {% set history_helper = 'input_text.' ~ bed_state_history_key %}
+                {% if not states[history_helper] %}
+                  true
+                {% elif states(history_helper) not in ['on', 'off'] %}
+                  true
+                {% elif current_bed_state != states(history_helper) %}
+                  true
+                {% else %}
+                  false
+                {% endif %}
+              {% else %}
+                false
+              {% endif %}
         sequence:
+          # Log state change if it's an actual change
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {% set history_helper = 'input_text.' ~ bed_state_history_key %}
+                      {{ states[history_helper] and states(history_helper) in ['on', 'off'] and states(history_helper) != current_bed_state }}
+                sequence:
+                  - if:
+                      - condition: template
+                        value_template: "{{ enable_debug_logs }}"
+                    then:
+                      - service: system_log.write
+                        data:
+                          level: warning
+                          message: >-
+                            ┌─ {{ room_name | upper }} BED STATE CHANGED ──────────────────────────────────────
+                            │ Previous: {{ states('input_text.' ~ bed_state_history_key) | upper }}
+                            │ Current: {{ current_bed_state | upper }}
+                            │ Action: {{ 'Will trigger ENTRY delay' if current_bed_state == 'on' else 'Will trigger EXIT delay' }}
+                            └────────────────────────────────────────────────────────────────
+          
           # Update the bed state history
           - service: input_text.set_value
             data:
               entity_id: "{{ 'input_text.' ~ bed_state_history_key }}"
               value: "{{ current_bed_state }}"
             continue_on_error: true
-          
-          - if:
-              - condition: template
-                value_template: "{{ enable_debug_logs }}"
-            then:
-              - service: system_log.write
-                data:
-                  level: warning
-                  message: >-
-                    [{{ room_name | upper }}] BED STATE CHANGED
-                    │ Previous: {{ last_bed_state | upper }}
-                    │ Current: {{ current_bed_state | upper }}
-                    │ Will trigger: {{ 'ENTRY delay' if bed_just_occupied else 'EXIT delay' if bed_just_vacated else 'nothing' }}
   
   # Update illuminance history
   - choose:
