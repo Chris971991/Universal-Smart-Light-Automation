@@ -259,6 +259,7 @@ blueprint:
           description: >
             **REQUIRED** - Choose your main presence sensor.
             
+            
             **Works with any sensor type:**
             
             • **PIR sensors** - Detect movement instantly (great for busy areas)
@@ -281,6 +282,7 @@ blueprint:
           name: Occupancy Sensor (mmWave/PIR)
           description: >
             **OPTIONAL** - Add a second sensor for even better detection.
+            
             
             **Why use two sensors?**
             
@@ -306,7 +308,9 @@ blueprint:
           description: >
             **OPTIONAL** - Let your sensor control its own timing.
             
+            
             Some advanced sensors (like Everything Presence) can adjust their own "clear" delay based on conditions. If your sensor has this feature, select it here.
+            
             
             **Common entity names:**
             
@@ -378,6 +382,7 @@ blueprint:
           description: >
             **REQUIRED** - Choose a sensor that measures how bright your room is.
             
+            
             **What is lux?** Think of it like a brightness meter:
             
             • **0-10 lux** - Pitch black or very dim
@@ -401,6 +406,7 @@ blueprint:
           name: Dark Threshold (Lights ON)
           description: >
             **When should lights turn ON?** Below this brightness level, lights will turn on when someone enters.
+            
             
             **Room-specific recommendations:**
             
@@ -427,6 +433,7 @@ blueprint:
           name: Bright Threshold (Natural Light OK)
           description: >
             **When is natural light enough?** Above this brightness level, lights won't turn on (plenty of daylight).
+            
             
             **Room-specific recommendations:**
             
@@ -457,6 +464,7 @@ blueprint:
           description: >
             **What counts as "pitch black"?** This helps lights automatically dim way down at night.
             
+            
             **When this kicks in:**
             
             • **0-2 lux** - Complete darkness (middle of the night)
@@ -481,6 +489,7 @@ blueprint:
           name: Enable Illuminance Averaging
           description: >
             **RECOMMENDED** - Smooths out light sensor readings to prevent flickering lights.
+            
             
             **What it prevents:**
             
@@ -511,6 +520,7 @@ blueprint:
           name: Override Clearing Method
           description: >
             **What happens when you manually control your lights?** Choose how the automation should resume.
+            
             
             **Real-world examples:**
             
@@ -543,6 +553,7 @@ blueprint:
           description: >
             **How long should your manual changes last?** After this time, automation resumes normal operation.
             
+            
             **Common scenarios:**
             
             • **1-2 hours** - Quick adjustments (dimming for TV)
@@ -569,6 +580,7 @@ blueprint:
           description: >
             **RECOMMENDED** - Should the override pause while you're still in the room?
             
+            
             **When enabled:**
             
             • **You're present** - Override timer pauses (your settings stay)
@@ -590,6 +602,7 @@ blueprint:
           name: Vacancy Clear Time
           description: >
             **How long should the room stay empty before resuming automation?** Only used with "Vacancy Can Clear" option.
+            
             
             **Think about it this way:**
             
@@ -630,6 +643,7 @@ blueprint:
           description: >
             **Save energy during daytime hours!** Choose how lights should behave when the sun is up.
             
+            
             **Your options:**
             
             • **Always Allow** - Lights work normally all day (good for dark rooms)
@@ -665,6 +679,7 @@ blueprint:
           description: >
             **Required for "Block When Away" mode** - How does the system know if anyone's home?
             
+            
             **Select family devices to track:**
             
             • **iPhones/Android phones** - Most reliable option
@@ -690,6 +705,7 @@ blueprint:
           name: Sunrise Offset
           description: >
             **When should "daytime" officially start?** Fine-tune when energy-saving mode begins.
+            
             
             **How the numbers work:**
             
@@ -721,6 +737,7 @@ blueprint:
           name: Sunset Offset
           description: >
             **When should "daytime" officially end?** Fine-tune when normal lighting resumes.
+            
             
             **How the numbers work:**
             
@@ -759,6 +776,7 @@ blueprint:
           description: >
             **OPTIONAL - Perfect for bedrooms!** Connect a sensor that knows when someone's in bed.
             
+            
             **What kind of sensor?**
             
             • **Pressure mat** - Under the mattress
@@ -790,6 +808,7 @@ blueprint:
           description: >
             **Automatic bedtime routine!** Should lights turn off when you get into bed?
             
+            
             **When enabled:**
             
             • **You get into bed** - Lights automatically turn off after a short delay
@@ -817,6 +836,7 @@ blueprint:
           name: Bed Entry Delay
           description: >
             **How long to wait before turning lights off?** Gives you time to settle in without rushing.
+            
             
             **Common scenarios:**
             
@@ -848,6 +868,7 @@ blueprint:
           name: Bed Exit Delay
           description: >
             **How long to wait before lights can turn back on?** Prevents lights from flickering when you move in bed.
+            
             
             **What this prevents:**
             
@@ -888,6 +909,7 @@ blueprint:
           description: >
             **Smart brightness that adapts to your day!** Lights automatically get brighter/dimmer based on time and room brightness.
             
+            
             **How it works:**
             
             • **Morning** - Gentle brightness to ease you awake
@@ -912,7 +934,9 @@ blueprint:
           description: >
             **Circadian lighting for better health!** Changes light color throughout the day to support your natural rhythm.
             
+            
             **The science:** Different light colors affect how alert or sleepy you feel.
+            
             
             **Daily color journey:**
             
@@ -943,6 +967,7 @@ blueprint:
           name: Daytime Color Temperature
           description: >
             **What color should daytime lights be?** This affects your alertness and focus during work hours.
+            
             
             **Color guide:**
             
@@ -977,6 +1002,7 @@ blueprint:
           description: >
             **What color should evening lights be?** This affects how sleepy you feel and your sleep quality.
             
+            
             **Color guide:**
             
             • **2700-3000K** - Warm white (cozy, like candlelight)
@@ -1010,6 +1036,7 @@ blueprint:
           description: >
             **Gentle wake-up lighting!** Should lights gradually brighten instead of suddenly turning on?
             
+            
             **Benefits:**
             
             • **Less jarring** - No sudden bright flash when entering
@@ -1030,6 +1057,7 @@ blueprint:
           name: Fade On Duration
           description: >
             **How fast should lights fade in?** Balance between responsiveness and smoothness.
+            
             
             **Timing options:**
             
@@ -1057,6 +1085,7 @@ blueprint:
           description: >
             **Gentle goodnight lighting!** Should lights gradually dim instead of suddenly turning off?
             
+            
             **Benefits:**
             
             • **Less abrupt** - No sudden darkness when leaving
@@ -1077,6 +1106,7 @@ blueprint:
           name: Fade Off Duration
           description: >
             **How fast should lights fade out?** Longer fades give you more warning but delay full darkness.
+            
             
             **Timing options:**
             
@@ -1117,6 +1147,7 @@ blueprint:
           description: >
             **Make visitors feel welcome!** Special lighting behavior when you have guests over.
             
+            
             **What changes with guests:**
             
             • **Lights stay on longer** - Guests move slower, need more time
@@ -1146,6 +1177,7 @@ blueprint:
           name: Guest Vacancy Multiplier
           description: >
             **How much more patient should the system be?** Multiplies your normal timing for guests.
+            
             
             **Real examples (if normal timeout is 5 minutes):**
             
@@ -1181,6 +1213,7 @@ blueprint:
           description: >
             **How much longer should manual adjustments last?** Guests may want different lighting for longer periods.
             
+            
             **Real examples (if normal override is 3 hours):**
             
             • **1.5×** - 4.5 hours total (slightly extended)
@@ -1214,6 +1247,7 @@ blueprint:
           name: Ignore Bed Sensor in Guest Mode
           description: >
             **Should the bed sensor be disabled when guests are over?** Useful for guest bedrooms and different sleep schedules.
+            
             
             **Why ignore bed sensors for guests?**
             
@@ -1249,6 +1283,7 @@ blueprint:
           description: >
             **Troubleshooting mode** - Creates detailed logs about every automation decision.
             
+            
             **What you'll see in the logs:**
             
             • **Why lights turned on/off** - Complete reasoning
@@ -1281,6 +1316,7 @@ blueprint:
           name: Check for Blueprint Updates
           description: >
             **Stay up to date!** Get notifications when new blueprint versions are available.
+            
             
             **What you get:**
             
