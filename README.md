@@ -1,8 +1,8 @@
 # Universal Smart Presence Lighting Control
-### Enhanced Version 3.8.7 - The Only Light Automation Blueprint You'll Ever Need
+### Version 3.8.8 - The Only Light Automation Blueprint You'll Ever Need
 
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Blueprint-blue)](https://www.home-assistant.io/docs/automation/using_blueprints/)
-[![Version](https://img.shields.io/badge/Version-3.8.7-green)]()
+[![Version](https://img.shields.io/badge/Version-3.8.8-green)]()
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)]()
 
 A sophisticated, universal lighting automation blueprint for Home Assistant that intelligently manages your lights based on presence, ambient light levels, and manual preferences. Works perfectly for **ANY** room type - bedrooms, offices, living rooms, kitchens, bathrooms, and more.
@@ -24,11 +24,13 @@ A sophisticated, universal lighting automation blueprint for Home Assistant that
 - **📊 Performance Tracking** - Monitors automation efficiency
 - **🔍 Debug Logging** - Detailed decision tree logging
 - **🌡️ Illuminance Averaging** - Filters out lighting spikes/drops
+- **🪟 Blinds Integration** - Coordinate natural light with automation (Coming Soon)
 
-### Latest Updates (v3.8.7)
-- **Enhanced** - Reorganized configuration interface with logical sections for better UX
-- **Fixed** - Universal compatibility without bed sensor errors
-- **Improved** - Bed sensor delays work reliably with 5-second polling
+### Latest Updates (v3.8.8)
+- **🚧 New** - Advanced Blinds Integration (Coming Soon) - Coordinate natural light with artificial lighting
+- **🔧 Simplified** - Removed bed entry/exit delays (handle in device or separate automation)
+- **✨ Enhanced** - Better field descriptions and user experience improvements
+- **📱 Improved** - More intuitive configuration interface
 
 ## 📋 Table of Contents
 - [Requirements](#-requirements)
@@ -202,8 +204,9 @@ Special features for bedroom automation.
 
 - **Bed Occupancy Sensor**: Detects when someone is in bed
 - **Auto-Off When Getting Into Bed**: Turn lights off at bedtime
-- **Bed Entry Delay**: Seconds before turning off (10-300)
-- **Bed Exit Delay**: Seconds before allowing on (5-120)
+- **🚧 Blinds Integration (Coming Soon)**: Natural light coordination, privacy automation, and anti-glare protection
+
+**Note:** Bed entry/exit delays removed in v3.8.8 - configure these in your bed sensor device or create separate helper automations for more reliable timing.
 
 ### 7️⃣ Adaptive Lighting (Optional)
 Automatic brightness and color temperature adjustments.
@@ -404,6 +407,12 @@ A: Either disable the automation entity or use Guest Mode (Section 8) for modifi
 A: Ensure all helper entity IDs are lowercase. "Office" room = "office" in entity IDs.
 
 ## 📝 Version History
+
+### v3.8.8 (2025-08-31)
+- **🚧 New**: Advanced Blinds Integration framework (Coming Soon) - Natural light coordination, privacy automation, anti-glare protection
+- **🔧 Simplified**: Removed bed entry/exit delays - better handled by device configuration or separate automations
+- **✨ Enhanced**: Comprehensive field description improvements for better user experience
+- **📱 Improved**: Added proper spacing and formatting throughout configuration interface
 
 ### v3.8.7 (2025-08-29)
 - **Enhanced**: Reorganized configuration into 9 logical sections for better UX

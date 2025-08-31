@@ -1,9 +1,9 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - Enhanced v3.8.7
+  name: Universal Smart Presence Lighting Control - v3.8.8
   description: >
     # 💡 Universal Smart Presence Lighting Control
     
-    **Version 3.8.7**
+    **Version 3.8.8**
     
     
     [📘 Documentation](https://github.com/Chris971991/universal-smart-light-automation) • [🐛 Report Issue](https://github.com/Chris971991/universal-smart-light-automation/issues) • [⭐ Star on GitHub](https://github.com/Chris971991/universal-smart-light-automation)
@@ -859,9 +859,11 @@ blueprint:
             🚀 **Status:** Feature structure complete - will be enabled in an upcoming release.
           default: []
           selector:
-            entity:
-              domain: cover
-              multiple: true
+            select:
+              options:
+                - label: "🚧 Coming Soon - Feature Not Yet Available"
+                  value: ""
+              mode: dropdown
         
         enable_blinds_automation:
           name: 😧 Enable Blinds Automation (Coming Soon)
@@ -883,7 +885,11 @@ blueprint:
             🔧 **Currently disabled** - Full functionality coming in future update.
           default: false
           selector:
-            boolean:
+            select:
+              options:
+                - label: "🚧 Disabled - Coming Soon"
+                  value: false
+              mode: dropdown
         
         blinds_privacy_mode:
           name: 😧 Privacy Mode (Coming Soon)
@@ -905,7 +911,11 @@ blueprint:
             💡 **Perfect for:** Evening comfort without sacrificing privacy or having to remember to close blinds.
           default: true
           selector:
-            boolean:
+            select:
+              options:
+                - label: "🚧 Disabled - Coming Soon"
+                  value: true
+              mode: dropdown
         
         blinds_natural_light_mode:
           name: 😧 Natural Light Optimization (Coming Soon)
@@ -927,7 +937,11 @@ blueprint:
             🌅 **Result:** Reduced artificial lighting needs and perfect natural light timing.
           default: true
           selector:
-            boolean:
+            select:
+              options:
+                - label: "🚧 Disabled - Coming Soon"
+                  value: true
+              mode: dropdown
     
     # Section 7: Adaptive Lighting
     adaptive_lighting:
@@ -1377,13 +1391,13 @@ blueprint:
           selector:
             boolean:
 
-# Variables and state management - SIMPLIFIED v3.8.7 with universal bed handling
+# Variables and state management - SIMPLIFIED v3.8.8 with blinds integration
 variables:
   # Store start time for performance monitoring
   start_time: "{{ now().timestamp() }}"
   
   # Version checking
-  blueprint_version: "3.8.7"  # UPDATE THIS WITH EACH RELEASE
+  blueprint_version: "3.8.8"  # UPDATE THIS WITH EACH RELEASE
   enable_update_check: !input enable_update_check
   update_sensor: "sensor.universal_lighting_updates"
   
