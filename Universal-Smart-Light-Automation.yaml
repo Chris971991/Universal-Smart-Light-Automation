@@ -883,12 +883,12 @@ blueprint:
             
             
             🔧 **Currently disabled** - Full functionality coming in future update.
-          default: false
+          default: "false"
           selector:
             select:
               options:
                 - label: "🚧 Disabled - Coming Soon"
-                  value: false
+                  value: "false"
               mode: dropdown
         
         blinds_privacy_mode:
@@ -909,12 +909,12 @@ blueprint:
             
             
             💡 **Perfect for:** Evening comfort without sacrificing privacy or having to remember to close blinds.
-          default: true
+          default: "true"
           selector:
             select:
               options:
                 - label: "🚧 Disabled - Coming Soon"
-                  value: true
+                  value: "true"
               mode: dropdown
         
         blinds_natural_light_mode:
@@ -935,12 +935,12 @@ blueprint:
             
             
             🌅 **Result:** Reduced artificial lighting needs and perfect natural light timing.
-          default: true
+          default: "true"
           selector:
             select:
               options:
                 - label: "🚧 Disabled - Coming Soon"
-                  value: true
+                  value: "true"
               mode: dropdown
     
     # Section 7: Adaptive Lighting
