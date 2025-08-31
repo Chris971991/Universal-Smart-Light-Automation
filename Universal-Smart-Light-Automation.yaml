@@ -832,71 +832,102 @@ blueprint:
           selector:
             boolean:
         
-        bed_entry_delay_seconds:
-          name: Bed Entry Delay
+        blinds_entities:
+          name: 😧 Blinds/Covers (Coming Soon)
           description: >
-            **How long to wait before turning lights off?** Gives you time to settle in without rushing.
+            🚧 **COMING SOON - Advanced Blinds Integration**
             
             
-            **Common scenarios:**
+            **This exciting feature will include:**
             
-            • **15-30 seconds** - Quick transition (you're ready for sleep)
+            • **Natural Light Optimization** - Auto-open at sunrise to reduce artificial lighting
             
-            • **30-60 seconds** - Time to get comfortable, check phone
+            • **Privacy Automation** - Smart closing at sunset and when lights turn on
             
-            • **60+ seconds** - Read a bit, settle in slowly
+            • **Ambiance Enhancement** - Coordinate blinds position with lighting for perfect atmosphere
+            
+            • **Anti-Glare Protection** - Automatically adjust when room gets too bright
+            
+            • **Manual Override Respect** - Won't interfere when you manually adjust
+            
+            • **Guest Mode Integration** - Special behavior when visitors are present
             
             
-            **Why the delay?**
-            
-            • **Prevents rushing** - No stress to turn off lights quickly
-            
-            • **Avoids false triggers** - Won't turn off lights if you just sit on the bed
+            💡 **Why integrate blinds with lighting?** Natural light and artificial light work together for optimal comfort and energy efficiency!
             
             
-            💡 **Sweet spot:** 30 seconds gives you time without being too slow.
-          default: 30
+            🚀 **Status:** Feature structure complete - will be enabled in an upcoming release.
+          default: []
           selector:
-            number:
-              min: 0
-              max: 300
-              unit_of_measurement: sec
-              mode: slider
-              step: 5
+            entity:
+              domain: cover
+              multiple: true
         
-        bed_exit_delay_seconds:
-          name: Bed Exit Delay
+        enable_blinds_automation:
+          name: 😧 Enable Blinds Automation (Coming Soon)
           description: >
-            **How long to wait before lights can turn back on?** Prevents lights from flickering when you move in bed.
+            🚧 **COMING SOON** - Master switch for all blinds automation features.
             
             
-            **What this prevents:**
+            **When enabled, this will coordinate your blinds with:**
             
-            • **Rolling over** - Brief movement won't trigger lights
+            • **Sunrise/sunset times** - Natural daily rhythm
             
-            • **Getting up briefly** - Quick bathroom trips register properly
+            • **Room occupancy** - Only adjust when you're present
             
-            • **Restless sleep** - Tossing and turning won't wake your partner
+            • **Light sensor readings** - Respond to brightness changes
             
-            
-            **Timing guide:**
-            
-            • **5-10 seconds** - Very sensitive (lights turn on quickly)
-            
-            • **15-20 seconds** - Good balance (recommended)
-            
-            • **30+ seconds** - Conservative (slower response but very stable)
+            • **Manual overrides** - Respect your preferences
             
             
-            💡 **Recommended:** 15 seconds catches real wake-ups without false alarms.
-          default: 15
+            🔧 **Currently disabled** - Full functionality coming in future update.
+          default: false
           selector:
-            number:
-              min: 0
-              max: 120
-              unit_of_measurement: sec
-              mode: slider
-              step: 5
+            boolean:
+        
+        blinds_privacy_mode:
+          name: 😧 Privacy Mode (Coming Soon)
+          description: >
+            🚧 **COMING SOON** - Automatically close blinds for privacy when lights turn on after dark.
+            
+            
+            **Smart privacy features:**
+            
+            • **Evening Protection** - Auto-close when lights turn on after sunset
+            
+            • **Customizable Position** - Set how much to close (25%, 50%, 75%, 100%)
+            
+            • **Room Awareness** - Different behavior for bedrooms vs living areas
+            
+            • **Override Detection** - Won't close if you've recently opened them manually
+            
+            
+            💡 **Perfect for:** Evening comfort without sacrificing privacy or having to remember to close blinds.
+          default: true
+          selector:
+            boolean:
+        
+        blinds_natural_light_mode:
+          name: 😧 Natural Light Optimization (Coming Soon)
+          description: >
+            🚧 **COMING SOON** - Coordinate blinds with sunrise/sunset for maximum natural light and energy savings.
+            
+            
+            **Energy-saving features:**
+            
+            • **Sunrise Opening** - Auto-open blinds to let morning light in
+            
+            • **Sunset Closing** - Close for evening privacy and ambiance
+            
+            • **Brightness Coordination** - Adjust based on room light levels
+            
+            • **Seasonal Adaptation** - Different behavior throughout the year
+            
+            
+            🌅 **Result:** Reduced artificial lighting needs and perfect natural light timing.
+          default: true
+          selector:
+            boolean:
     
     # Section 7: Adaptive Lighting
     adaptive_lighting:
@@ -1421,8 +1452,11 @@ variables:
   sunset_offset_minutes: !input sunset_offset_minutes
   bed_occupied_helper: !input bed_occupied_helper
   turn_off_when_bed_occupied: !input turn_off_when_bed_occupied
-  bed_entry_delay_seconds: !input bed_entry_delay_seconds
-  bed_exit_delay_seconds: !input bed_exit_delay_seconds
+  # Blinds integration - COMING SOON
+  blinds_entities: !input blinds_entities
+  enable_blinds_automation: !input enable_blinds_automation
+  blinds_privacy_mode: !input blinds_privacy_mode
+  blinds_natural_light_mode: !input blinds_natural_light_mode
   dark_threshold: !input dark_threshold
   bright_threshold: !input bright_threshold
   extremely_dark_threshold: !input extremely_dark_threshold
@@ -2903,9 +2937,7 @@ action:
                           - condition: template
                             value_template: "{{ is_bed_trigger and not bed_occupied_raw and has_bed_sensor }}"
                         sequence:
-                          - delay:
-                              seconds: "{{ bed_exit_delay_seconds }}"
-                          # Re-check conditions after delay
+                          # Re-check conditions (bed exit delay removed in v3.8.8)
                           - condition: template
                             value_template: "{{ is_dark and someone_present and states(bed_occupied_helper) == 'off' and not manual_override }}"
                   
@@ -3007,7 +3039,7 @@ action:
                             │ Brightness: {{ adaptive_brightness }}%
                             │ Color Temp: {{ adaptive_color_temp }}K
                             │ Guest Mode: {{ 'YES' if enable_guest_mode else 'NO' }}
-                            │ Bed Exit Delay: {{ bed_exit_delay_seconds }}s{% if is_bed_trigger and not bed_occupied_raw %} (APPLIED ±5s){% endif %}
+                            │ Blinds: {{ 'COMING SOON' if enable_blinds_automation else 'Disabled' }}
                             └────────────────────────────────────────────────────────────────
               
               # Turn lights OFF (with simple bed delay)
@@ -3026,11 +3058,7 @@ action:
                                  trigger.to_state.state == 'on' and
                                  not (enable_guest_mode and guest_ignore_bed) }}
                         sequence:
-                          # Wait the entry delay
-                          - delay:
-                              seconds: "{{ bed_entry_delay_seconds }}"
-                          
-                          # Verify ALL conditions still valid after delay
+                          # Verify ALL conditions still valid (bed entry delay removed in v3.8.8)
                           - condition: template
                             value_template: >-
                               {{ states(bed_occupied_helper) == 'on' and
@@ -3046,7 +3074,7 @@ action:
                               - service: system_log.write
                                 data:
                                   level: warning
-                                  message: "[{{ room_name | upper }}] Turning off lights - bed occupied for {{ bed_entry_delay_seconds }}s"
+                                  message: "[{{ room_name | upper }}] Turning off lights - bed occupied"
                   
                   # Set automation active
                   - service: input_boolean.turn_on
@@ -3128,7 +3156,7 @@ action:
                             │ Control Mode: {{ control_mode }}
                             │ Reason: {% if turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}Bed occupied{% else %}Room vacant{% endif %}
                             │ Fade Off: {{ effective_fade_off_time }}s
-                            │ Bed Entry Delay: {{ bed_entry_delay_seconds }}s{% if is_bed_trigger and bed_occupied_raw %} (APPLIED ±5s){% endif %}
+                            │ Blinds: {{ 'COMING SOON' if enable_blinds_automation else 'Disabled' }}
                             └────────────────────────────────────────────────────────────────
               
               # Log when prevented from turning on (but not when lights already on) - with conditional logging
