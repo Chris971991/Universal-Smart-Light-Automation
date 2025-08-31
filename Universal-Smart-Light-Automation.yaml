@@ -169,24 +169,37 @@ blueprint:
         room_name:
           name: Room Name *
           description: >
-            **REQUIRED** - Name of the room for this automation.
+            **REQUIRED** - Give your room a unique name for this automation.
             
-            Use lowercase with underscores for multi-word names (e.g., "living_room", "master_bedroom").
+            💡 **Naming Rules:**
             
-            ⚠️ This name is used to find your helper entities, so it must match exactly!
+            • Use lowercase letters only
+            
+            • Replace spaces with underscores
+            
+            • Keep it simple and descriptive
+            
+            
+            **Examples:** `bedroom`, `living_room`, `master_bathroom`, `home_office`
+            
+            
+            ⚠️ **Important:** This name must match your helper entities exactly!
           selector:
             text:
         
         control_mode:
           name: Control Mode *
           description: >
-            **REQUIRED** - How are your lights set up?
+            **REQUIRED** - Tell us how your room's lighting is wired.
             
-            • **Smart Switch + Smart Lights** - Wall switch controls smart bulbs (doesn't cut power)
+            • **Smart Switch + Smart Lights** - Wall switch that doesn't cut power to smart bulbs (ideal setup)
             
-            • **Smart Lights Only** - Direct control of smart bulbs (lamps, etc.)
+            • **Smart Lights Only** - Lamps or fixtures with smart bulbs, no wall switch needed
             
-            • **Smart Switch Only** - Smart switch controlling regular bulbs
+            • **Smart Switch Only** - Wall switch controlling regular (non-smart) bulbs
+            
+            
+            💡 **Not sure?** Choose "Smart Switch Only" if you have regular bulbs with a smart wall switch.
           default: "switch_only"
           selector:
             select:
@@ -201,13 +214,16 @@ blueprint:
         light_switch:
           name: Light Switch Entity
           description: >
-            Based on your Control Mode:
+            **Select your wall switch** (if you have one):
             
-            • **Smart Switch + Smart Lights**: Select your wall switch
+            • **Smart Switch + Smart Lights**: Choose the wall switch that controls your smart bulbs
             
-            • **Smart Lights Only**: Leave empty
+            • **Smart Lights Only**: Skip this - leave empty since you don't use a wall switch
             
-            • **Smart Switch Only**: Select your smart switch
+            • **Smart Switch Only**: Choose your smart wall switch that controls regular bulbs
+            
+            
+            💡 **Tip:** If you selected "Smart Lights Only" above, you can ignore this field.
           default: ""
           selector:
             entity:
@@ -216,13 +232,16 @@ blueprint:
         light_entities:
           name: Smart Light Entities
           description: >
-            Based on your Control Mode:
+            **Select your smart bulbs** (if you have any):
             
-            • **Smart Switch + Smart Lights**: Select your smart bulbs
+            • **Smart Switch + Smart Lights**: Choose all the smart bulbs controlled by your wall switch
             
-            • **Smart Lights Only**: Select your smart bulbs
+            • **Smart Lights Only**: Choose all your smart bulbs (lamps, fixtures, etc.)
             
-            • **Smart Switch Only**: Leave empty
+            • **Smart Switch Only**: Skip this - leave empty since you use regular bulbs
+            
+            
+            💡 **Tip:** If you selected "Smart Switch Only" above, you can ignore this field.
           default: []
           selector:
             entity:
@@ -236,18 +255,20 @@ blueprint:
       collapsed: true
       input:
         presence_pir_sensor:
-          name: Motion Sensor (PIR/mmWave/Radar) - Primary Sensor *
+          name: Motion Sensor (PIR/mmWave/Radar) *
           description: >
-            **REQUIRED** - Primary presence detection sensor. Works with any sensor type:
+            **REQUIRED** - Choose your main presence sensor.
             
-            • PIR sensors (instant motion detection)
+            **Works with any sensor type:**
             
-            • mmWave/radar sensors (stillness detection)
+            • **PIR sensors** - Detect movement instantly (great for busy areas)
             
-            • Any motion or occupancy sensor
+            • **mmWave/Radar** - Detect stillness too (perfect for desks, reading areas)
+            
+            • **Standard motion sensors** - Any Home Assistant motion/occupancy sensor
             
             
-            💡 If you only have one sensor, use it here and also select it below.
+            💡 **Only have one sensor?** Use it here AND select it again below for best results.
           selector:
             entity:
               domain: binary_sensor
@@ -257,18 +278,20 @@ blueprint:
                 - presence
         
         presence_mmwave_sensor:
-          name: Occupancy Sensor (mmWave/PIR) - Secondary Sensor
+          name: Occupancy Sensor (mmWave/PIR)
           description: >
-            **OPTIONAL** - Secondary sensor for enhanced detection.
+            **OPTIONAL** - Add a second sensor for even better detection.
             
-            • Best: Combine PIR (fast motion) + mmWave (stillness detection)
+            **Why use two sensors?**
             
-            • mmWave/radar sensors (detects stationary presence)
+            • **PIR + mmWave combo** - PIR catches movement, mmWave keeps lights on when you're still
             
-            • PIR sensors (backup motion detection)
+            • **Dual coverage** - Different angles or room areas
+            
+            • **Backup detection** - One sensor might miss you, two won't
             
             
-            💡 TIP: If you only have one sensor, select the same sensor as above.
+            💡 **Single sensor setup?** Select the same sensor as above - it still helps!
           default: ""
           selector:
             entity:
@@ -281,11 +304,18 @@ blueprint:
         sensor_off_latency_entity:
           name: Dynamic Sensor Off Latency
           description: >
-            **OPTIONAL** - Entity providing dynamic timeout.
+            **OPTIONAL** - Let your sensor control its own timing.
             
-            For Everything Presence: number.everything_presence_xxx_occupancy_off_latency
+            Some advanced sensors (like Everything Presence) can adjust their own "clear" delay based on conditions. If your sensor has this feature, select it here.
             
-            Leave blank to use fixed value below.
+            **Common entity names:**
+            
+            • `number.everything_presence_xxx_occupancy_off_latency`
+            
+            • `number.your_sensor_name_timeout`
+            
+            
+            💡 **Don't have this?** Leave blank and use the fixed timing below.
           default: ""
           selector:
             entity:
@@ -295,13 +325,16 @@ blueprint:
         fixed_latency_seconds:
           name: Fixed Sensor Off Latency
           description: >
-            Seconds before sensor reports "clear" after last motion.
+            How long after motion stops should the sensor wait before saying "room is empty"?
             
-            • Short (30s): Responsive
+            • **Short (30s)** - Quick response, but might turn off lights if you sit still
             
-            • Medium (60s): Balanced
+            • **Medium (60s)** - Good balance for most rooms
             
-            • Long (120s): Conservative
+            • **Long (120s)** - Patient waiting, good for reading/work areas
+            
+            
+            💡 **Recommended:** Start with 60s and adjust based on how your room feels.
           default: 60
           selector:
             number:
@@ -314,9 +347,18 @@ blueprint:
         vacancy_timeout_multiplier:
           name: Vacancy Timeout Multiplier
           description: >
-            Multiplier for sensor latency before lights off.
+            How much longer should lights stay on after the sensor says "room is empty"?
             
-            Example: 60s latency × 5 = 5 minutes
+            **Real examples:**
+            
+            • **Multiplier 3:** 60s sensor delay × 3 = 3 minutes total
+            
+            • **Multiplier 5:** 60s sensor delay × 5 = 5 minutes total
+            
+            • **Multiplier 10:** 60s sensor delay × 10 = 10 minutes total
+            
+            
+            💡 **Higher = safer** (lights stay on longer) but uses more energy.
           default: 5
           selector:
             number:
@@ -334,9 +376,21 @@ blueprint:
         illuminance_sensor:
           name: Illuminance Sensor *
           description: >
-            **REQUIRED** - Sensor measuring room brightness in lux.
+            **REQUIRED** - Choose a sensor that measures how bright your room is.
             
-            💡 No sensor? Create an input_number helper set to 50 lux.
+            **What is lux?** Think of it like a brightness meter:
+            
+            • **0-10 lux** - Pitch black or very dim
+            
+            • **50-100 lux** - Typical room lighting
+            
+            • **200+ lux** - Bright daylight coming in
+            
+            
+            💡 **Don't have a light sensor?** Create an `input_number` helper and set it to 50 lux as a starting point.
+            
+            
+            🎯 **Pro tip:** Many motion sensors also measure light - check if yours does!
           selector:
             entity:
               domain: 
@@ -346,13 +400,20 @@ blueprint:
         dark_threshold:
           name: Dark Threshold (Lights ON)
           description: >
-            Below this = lights needed when occupied.
+            **When should lights turn ON?** Below this brightness level, lights will turn on when someone enters.
             
-            • Bedrooms: 20-30 lux
+            **Room-specific recommendations:**
             
-            • Living areas: 30-40 lux
+            • **Bedrooms:** 20-30 lux (dimmer is fine here)
             
-            • Workspaces: 40-50 lux
+            • **Living areas:** 30-40 lux (comfortable for daily activities)
+            
+            • **Workspaces:** 40-50 lux (brighter for productivity)
+            
+            • **Bathrooms:** 25-35 lux (bright enough to see safely)
+            
+            
+            💡 **Too dim?** Raise this number. **Too bright?** Lower it.
           default: 30
           selector:
             number:
@@ -365,16 +426,23 @@ blueprint:
         bright_threshold:
           name: Bright Threshold (Natural Light OK)
           description: >
-            Above this = enough natural light.
+            **When is natural light enough?** Above this brightness level, lights won't turn on (plenty of daylight).
             
-            • Bedrooms: 150-200 lux
+            **Room-specific recommendations:**
             
-            • Living areas: 200-250 lux
+            • **Bedrooms:** 150-200 lux (morning sunlight is enough)
             
-            • Workspaces: 250-300 lux
+            • **Living areas:** 200-250 lux (good natural lighting)
+            
+            • **Workspaces:** 250-300 lux (bright enough for detailed work)
+            
+            • **Bathrooms:** 180-220 lux (sufficient for grooming)
             
             
-            ⚠️ Must be at least 10 lux higher than Dark Threshold!
+            ⚠️ **Important:** This must be at least 10 lux higher than your Dark Threshold!
+            
+            
+            💡 **Lights turning on when it's bright outside?** Raise this number.
           default: 200
           selector:
             number:
@@ -387,8 +455,19 @@ blueprint:
         extremely_dark_threshold:
           name: Extremely Dark Threshold
           description: >
-            Pitch black conditions (1-5 lux typical).
-            Used for aggressive dimming at night.
+            **What counts as "pitch black"?** This helps lights automatically dim way down at night.
+            
+            **When this kicks in:**
+            
+            • **0-2 lux** - Complete darkness (middle of the night)
+            
+            • **3-5 lux** - Very dim (nightlight level)
+            
+            
+            **What happens:** Lights automatically start at much lower brightness to avoid blinding you.
+            
+            
+            💡 **Perfect for:** Late night bathroom trips or checking on kids without waking anyone.
           default: 3
           selector:
             number:
@@ -401,13 +480,23 @@ blueprint:
         enable_illuminance_averaging:
           name: Enable Illuminance Averaging
           description: >
-            **RECOMMENDED** - Filters out temporary light changes:
+            **RECOMMENDED** - Smooths out light sensor readings to prevent flickering lights.
             
-            • Lightning flashes
+            **What it prevents:**
             
-            • Camera flashes
+            • **Lightning flashes** - Won't trigger lights during storms
             
-            • Passing clouds
+            • **Camera flashes** - Phone photos won't confuse the system
+            
+            • **Passing clouds** - Temporary shadows won't turn lights on/off
+            
+            • **Car headlights** - Passing traffic won't affect your lights
+            
+            
+            💡 **Result:** Stable, predictable lighting that only responds to real brightness changes.
+            
+            
+            🔧 **Technical:** Averages the last 3 sensor readings instead of using just the latest one.
           default: true
           selector:
             boolean:
@@ -421,10 +510,25 @@ blueprint:
         override_behavior:
           name: Override Clearing Method
           description: >
-            How should manual overrides be cleared?
+            **What happens when you manually control your lights?** Choose how the automation should resume.
             
-            **Timeout Only** - Full control for set hours
-            **Vacancy Can Clear** - Also clears after extended vacancy
+            **Real-world examples:**
+            
+            • You manually dim lights for a movie
+            
+            • You turn lights off during the day
+            
+            • You adjust brightness for reading
+            
+            
+            **Your options:**
+            
+            • **Timeout Only** - Automation stays paused for hours (you stay in control)
+            
+            • **Vacancy Can Clear** - Automation resumes if room stays empty (smarter, but less predictable)
+            
+            
+            💡 **Most people prefer:** Timeout Only for predictable behavior.
           default: "timeout_only"
           selector:
             select:
@@ -437,7 +541,20 @@ blueprint:
         override_timeout_hours:
           name: Override Timeout Duration
           description: >
-            Hours before override expires (1-24).
+            **How long should your manual changes last?** After this time, automation resumes normal operation.
+            
+            **Common scenarios:**
+            
+            • **1-2 hours** - Quick adjustments (dimming for TV)
+            
+            • **3-4 hours** - Extended activities (movie night, reading session)
+            
+            • **6-8 hours** - All evening control (dinner party, game night)
+            
+            • **12+ hours** - All day/night control (special occasions)
+            
+            
+            💡 **Recommended:** Start with 3 hours - covers most activities without being too long.
           default: 3
           selector:
             number:
@@ -450,8 +567,21 @@ blueprint:
         override_respect_presence:
           name: Respect Presence for Timeout
           description: >
-            **RECOMMENDED** - Override won't clear while you're in the room.
-            Prevents lights changing during long activities (movies, etc.).
+            **RECOMMENDED** - Should the override pause while you're still in the room?
+            
+            **When enabled:**
+            
+            • **You're present** - Override timer pauses (your settings stay)
+            
+            • **You leave** - Timer starts counting down
+            
+            • **You return** - Timer pauses again
+            
+            
+            **Perfect for:** Long movies, work sessions, or dinner parties where you want consistent lighting.
+            
+            
+            💡 **Why enable this?** Prevents lights from suddenly changing back to automatic in the middle of activities.
           default: true
           selector:
             boolean:
@@ -459,8 +589,27 @@ blueprint:
         vacancy_clear_minutes:
           name: Vacancy Clear Time
           description: >
-            Minutes of vacancy before clearing override.
-            Only applies when using "Vacancy Can Clear".
+            **How long should the room stay empty before resuming automation?** Only used with "Vacancy Can Clear" option.
+            
+            **Think about it this way:**
+            
+            • You manually turn off lights during the day
+            
+            • You leave the room for this many minutes
+            
+            • Automation wakes up and resumes normal operation
+            
+            
+            **Timing examples:**
+            
+            • **15-20 minutes** - Quick errands (making coffee, bathroom break)
+            
+            • **30-45 minutes** - Longer absence (lunch, phone call)
+            
+            • **60+ minutes** - Extended time away (meeting, grocery run)
+            
+            
+            💡 **Recommended:** 45 minutes balances convenience with manual control.
           default: 45
           selector:
             number:
@@ -479,11 +628,27 @@ blueprint:
         daytime_control_mode:
           name: Daytime Lighting Control
           description: >
-            Control automatic lighting during daytime:
+            **Save energy during daytime hours!** Choose how lights should behave when the sun is up.
             
-            **Always Allow** - Normal operation
-            **Block When Away** - No auto-on when nobody home
-            **Always Block** - Never auto-on during daytime
+            **Your options:**
+            
+            • **Always Allow** - Lights work normally all day (good for dark rooms)
+            
+            • **Block When Away** - Lights only turn on if someone's home (smart energy saving)
+            
+            • **Always Block** - No automatic lights during daytime (maximum energy saving)
+            
+            
+            **Which should you choose?**
+            
+            • **Dark rooms** (basements, windowless): Always Allow
+            
+            • **Normal rooms** with good windows: Block When Away
+            
+            • **Very bright rooms** with tons of windows: Always Block
+            
+            
+            💡 **Popular choice:** Block When Away - saves energy but still works when you're home.
           default: "always_allow"
           selector:
             select:
@@ -498,10 +663,23 @@ blueprint:
         presence_trackers:
           name: Device Trackers
           description: >
-            **Required for "Block When Away"**
+            **Required for "Block When Away" mode** - How does the system know if anyone's home?
             
-            Select family phones/devices to track home presence.
-            Someone home = ANY device is home.
+            **Select family devices to track:**
+            
+            • **iPhones/Android phones** - Most reliable option
+            
+            • **Tablets** - iPads, Android tablets
+            
+            • **Laptops** - If they connect to your WiFi
+            
+            • **Smart watches** - Apple Watch, Galaxy Watch
+            
+            
+            **How it works:** If ANY selected device is home, lights can turn on automatically.
+            
+            
+            💡 **Pro tip:** Add all family members' phones for best results!
           default: []
           selector:
             entity:
@@ -511,11 +689,25 @@ blueprint:
         sunrise_offset_minutes:
           name: Sunrise Offset
           description: >
-            Adjust daytime start relative to sunrise.
+            **When should "daytime" officially start?** Fine-tune when energy-saving mode begins.
             
-            • Positive (+30): Daytime starts AFTER sunrise
+            **How the numbers work:**
             
-            • Negative (-30): Daytime starts BEFORE sunrise
+            • **Positive numbers (+30)** - Daytime starts 30 minutes AFTER sunrise
+            
+            • **Negative numbers (-30)** - Daytime starts 30 minutes BEFORE sunrise
+            
+            • **Zero (0)** - Daytime starts exactly at sunrise
+            
+            
+            **Why adjust this?**
+            
+            • **+30 to +60** - Wait for sunrise to actually brighten your room
+            
+            • **-30 to -60** - Start energy saving while it's still getting light
+            
+            
+            💡 **Recommended:** +30 minutes gives sunrise time to actually light up your space.
           default: 30
           selector:
             number:
@@ -528,11 +720,25 @@ blueprint:
         sunset_offset_minutes:
           name: Sunset Offset
           description: >
-            Adjust daytime end relative to sunset.
+            **When should "daytime" officially end?** Fine-tune when normal lighting resumes.
             
-            • Positive (+30): Daytime ends AFTER sunset
+            **How the numbers work:**
             
-            • Negative (-30): Daytime ends BEFORE sunset
+            • **Positive numbers (+30)** - Daytime ends 30 minutes AFTER sunset
+            
+            • **Negative numbers (-30)** - Daytime ends 30 minutes BEFORE sunset
+            
+            • **Zero (0)** - Daytime ends exactly at sunset
+            
+            
+            **Why adjust this?**
+            
+            • **-30 to -60** - Resume lighting before it gets dark (proactive)
+            
+            • **+30 to +60** - Wait for full darkness before resuming (conservative)
+            
+            
+            💡 **Recommended:** -30 minutes ensures lights start working before you need them.
           default: -30
           selector:
             number:
@@ -551,13 +757,27 @@ blueprint:
         bed_occupied_helper:
           name: Bed Occupancy Sensor
           description: >
-            **OPTIONAL - For bedrooms only**
+            **OPTIONAL - Perfect for bedrooms!** Connect a sensor that knows when someone's in bed.
             
-            When bed occupied:
+            **What kind of sensor?**
             
-            • Lights won't turn on automatically
+            • **Pressure mat** - Under the mattress
             
-            • Can turn off when getting into bed
+            • **Load cell** - Measures bed weight
+            
+            • **Input boolean** - Manual toggle switch
+            
+            • **Sleep tracking device** - Smart mattress, etc.
+            
+            
+            **What it does:**
+            
+            • **Prevents wake-ups** - Lights won't turn on if you move in bed
+            
+            • **Automatic bedtime** - Can turn lights off when you get in bed
+            
+            
+            💡 **Don't have a bed sensor?** Skip this - the other settings will still work great!
           default: ""
           selector:
             entity:
@@ -568,8 +788,27 @@ blueprint:
         turn_off_when_bed_occupied:
           name: Auto-Off When Getting Into Bed
           description: >
-            Turn lights OFF when getting into bed?
-            Perfect for bedtime routine.
+            **Automatic bedtime routine!** Should lights turn off when you get into bed?
+            
+            **When enabled:**
+            
+            • **You get into bed** - Lights automatically turn off after a short delay
+            
+            • **Perfect for** - No more getting up to turn off lights!
+            
+            • **Smart timing** - Waits a moment to make sure you're settling in
+            
+            
+            **When to disable:**
+            
+            • You read in bed with lights on
+            
+            • You watch TV/movies in bed
+            
+            • You prefer manual control at bedtime
+            
+            
+            💡 **Most people love this** - it's like having a smart bedtime routine!
           default: true
           selector:
             boolean:
@@ -577,8 +816,25 @@ blueprint:
         bed_entry_delay_seconds:
           name: Bed Entry Delay
           description: >
-            Seconds before turning lights OFF when bed occupied.
-            Prevents false triggers from sitting.
+            **How long to wait before turning lights off?** Gives you time to settle in without rushing.
+            
+            **Common scenarios:**
+            
+            • **15-30 seconds** - Quick transition (you're ready for sleep)
+            
+            • **30-60 seconds** - Time to get comfortable, check phone
+            
+            • **60+ seconds** - Read a bit, settle in slowly
+            
+            
+            **Why the delay?**
+            
+            • **Prevents rushing** - No stress to turn off lights quickly
+            
+            • **Avoids false triggers** - Won't turn off lights if you just sit on the bed
+            
+            
+            💡 **Sweet spot:** 30 seconds gives you time without being too slow.
           default: 30
           selector:
             number:
@@ -591,8 +847,27 @@ blueprint:
         bed_exit_delay_seconds:
           name: Bed Exit Delay
           description: >
-            Seconds before allowing lights ON after leaving bed.
-            Prevents triggers from rolling over.
+            **How long to wait before lights can turn back on?** Prevents lights from flickering when you move in bed.
+            
+            **What this prevents:**
+            
+            • **Rolling over** - Brief movement won't trigger lights
+            
+            • **Getting up briefly** - Quick bathroom trips register properly
+            
+            • **Restless sleep** - Tossing and turning won't wake your partner
+            
+            
+            **Timing guide:**
+            
+            • **5-10 seconds** - Very sensitive (lights turn on quickly)
+            
+            • **15-20 seconds** - Good balance (recommended)
+            
+            • **30+ seconds** - Conservative (slower response but very stable)
+            
+            
+            💡 **Recommended:** 15 seconds catches real wake-ups without false alarms.
           default: 15
           selector:
             number:
@@ -611,11 +886,23 @@ blueprint:
         enable_adaptive_brightness:
           name: Enable Adaptive Brightness
           description: >
-            Automatically adjust brightness by time and ambient light.
+            **Smart brightness that adapts to your day!** Lights automatically get brighter/dimmer based on time and room brightness.
             
-            • Dimmer at night
+            **How it works:**
             
-            • Brighter during day
+            • **Morning** - Gentle brightness to ease you awake
+            
+            • **Daytime** - Full brightness for productivity
+            
+            • **Evening** - Softer light for relaxation
+            
+            • **Night** - Very dim for safety without disturbing sleep
+            
+            
+            **The magic:** Combines time of day + room brightness for perfect lighting.
+            
+            
+            💡 **Result:** No more squinting at bright lights at 3 AM or struggling with dim lights during work!
           default: true
           selector:
             boolean:
@@ -623,11 +910,31 @@ blueprint:
         enable_color_temperature:
           name: Enable Color Temperature Control
           description: >
-            Adjust light color throughout the day.
+            **Circadian lighting for better health!** Changes light color throughout the day to support your natural rhythm.
             
-            • Cool white daytime (alertness)
+            **The science:** Different light colors affect how alert or sleepy you feel.
             
-            • Warm white nighttime (relaxation)
+            **Daily color journey:**
+            
+            • **Morning** - Cool, energizing blue-white light
+            
+            • **Midday** - Bright, focused white light
+            
+            • **Evening** - Warm, relaxing orange-white light
+            
+            • **Night** - Very warm, sleepy red-orange light
+            
+            
+            **Benefits:**
+            
+            • **Better sleep** - Warm light at night won't disrupt melatonin
+            
+            • **More alertness** - Cool light during day keeps you focused
+            
+            • **Natural rhythm** - Supports your body's internal clock
+            
+            
+            💡 **Only works with color-changing bulbs** - regular bulbs will ignore this setting.
           default: true
           selector:
             boolean:
@@ -635,8 +942,27 @@ blueprint:
         day_color_temp:
           name: Daytime Color Temperature
           description: >
-            Color for daytime hours (9 AM - 5 PM).
-            Higher = cooler/bluer light.
+            **What color should daytime lights be?** This affects your alertness and focus during work hours.
+            
+            **Color guide:**
+            
+            • **4000-4500K** - Neutral white (comfortable for all activities)
+            
+            • **5000-5500K** - Cool white (energizing, good for focus)
+            
+            • **6000-6500K** - Daylight white (very alert, like bright sunny day)
+            
+            
+            **Room recommendations:**
+            
+            • **Home office:** 5000-5500K (productivity boost)
+            
+            • **Living room:** 4000-4500K (comfortable socializing)
+            
+            • **Kitchen:** 5000K (good for cooking tasks)
+            
+            
+            💡 **Higher numbers = cooler/bluer** (more energizing but can feel harsh).
           default: 5000
           selector:
             number:
@@ -649,8 +975,27 @@ blueprint:
         night_color_temp:
           name: Nighttime Color Temperature
           description: >
-            Color for evening/night hours.
-            Lower = warmer/orange light.
+            **What color should evening lights be?** This affects how sleepy you feel and your sleep quality.
+            
+            **Color guide:**
+            
+            • **2700-3000K** - Warm white (cozy, like candlelight)
+            
+            • **3000-3500K** - Soft white (relaxing but not too dim)
+            
+            • **3500-4000K** - Neutral warm (still comfortable for reading)
+            
+            
+            **Room recommendations:**
+            
+            • **Bedroom:** 2700-3000K (promotes sleepiness)
+            
+            • **Living room:** 3000-3500K (cozy evening atmosphere)
+            
+            • **Bathroom:** 3500K (warm but still functional)
+            
+            
+            💡 **Lower numbers = warmer/more orange** (better for sleep but harder to see details).
           default: 3000
           selector:
             number:
@@ -663,7 +1008,20 @@ blueprint:
         enable_fade_on:
           name: Enable Fade On
           description: >
-            Lights fade in smoothly when turning on.
+            **Gentle wake-up lighting!** Should lights gradually brighten instead of suddenly turning on?
+            
+            **Benefits:**
+            
+            • **Less jarring** - No sudden bright flash when entering
+            
+            • **Easier on eyes** - Smooth transition from dark to bright
+            
+            • **More luxurious** - Feels like a high-end hotel
+            
+            • **Better at night** - Won't startle you awake with instant brightness
+            
+            
+            💡 **Perfect for:** Bedrooms, bathrooms, and any room where sudden bright light is unpleasant.
           default: true
           selector:
             boolean:
@@ -671,7 +1029,20 @@ blueprint:
         fade_on_time:
           name: Fade On Duration
           description: >
-            Seconds for fade in effect.
+            **How fast should lights fade in?** Balance between responsiveness and smoothness.
+            
+            **Timing options:**
+            
+            • **0.5-1 second** - Quick and responsive (barely noticeable fade)
+            
+            • **1.5-2 seconds** - Smooth and pleasant (recommended)
+            
+            • **3-5 seconds** - Very gradual (dramatic but slower)
+            
+            • **5+ seconds** - Cinematic effect (too slow for most people)
+            
+            
+            💡 **Sweet spot:** 1.5 seconds feels smooth without making you wait.
           default: 1.5
           selector:
             number:
@@ -684,7 +1055,20 @@ blueprint:
         enable_fade_off:
           name: Enable Fade Off
           description: >
-            Lights fade out smoothly when turning off.
+            **Gentle goodnight lighting!** Should lights gradually dim instead of suddenly turning off?
+            
+            **Benefits:**
+            
+            • **Less abrupt** - No sudden darkness when leaving
+            
+            • **Gives warning** - You can see the lights starting to fade
+            
+            • **More elegant** - Smooth transitions feel premium
+            
+            • **Safer** - Eyes adjust gradually to darkness
+            
+            
+            💡 **Especially nice for:** Bedrooms and bathrooms where sudden darkness can be disorienting.
           default: true
           selector:
             boolean:
@@ -692,7 +1076,27 @@ blueprint:
         fade_off_time:
           name: Fade Off Duration
           description: >
-            Seconds for fade out effect.
+            **How fast should lights fade out?** Longer fades give you more warning but delay full darkness.
+            
+            **Timing options:**
+            
+            • **1-2 seconds** - Quick fade (responsive, minimal delay)
+            
+            • **2-3 seconds** - Comfortable fade (recommended)
+            
+            • **4-5 seconds** - Slow fade (lots of warning, dramatic effect)
+            
+            • **5+ seconds** - Very slow (too long for most people)
+            
+            
+            **Why longer is sometimes better:**
+            
+            • **Gives you time** - Can change your mind if lights start fading
+            
+            • **Safety warning** - See the fade starting and plan your exit
+            
+            
+            💡 **Recommended:** 2 seconds gives good warning without feeling slow.
           default: 2.0
           selector:
             number:
@@ -711,13 +1115,29 @@ blueprint:
         enable_guest_mode:
           name: Enable Guest Mode
           description: >
-            Special behavior for visitors:
+            **Make visitors feel welcome!** Special lighting behavior when you have guests over.
             
-            • Lights stay on longer
+            **What changes with guests:**
             
-            • Extended overrides
+            • **Lights stay on longer** - Guests move slower, need more time
             
-            • Less aggressive automation
+            • **Manual control lasts longer** - More patient with guest preferences
+            
+            • **Less pushy automation** - Won't aggressively manage lights
+            
+            • **Bed sensors ignored** - Useful for guest bedrooms
+            
+            
+            **Perfect for:**
+            
+            • **Dinner parties** - Lights won't turn off during conversations
+            
+            • **Weekend visitors** - More patient with different routines
+            
+            • **Elderly guests** - Extra time for slower movement
+            
+            
+            💡 **Activate via:** Toggle an input_boolean helper when guests arrive.
           default: false
           selector:
             boolean:
@@ -725,8 +1145,29 @@ blueprint:
         guest_vacancy_multiplier:
           name: Guest Vacancy Multiplier
           description: >
-            How much longer before turning off.
-            2.5 = 2.5× longer wait time.
+            **How much more patient should the system be?** Multiplies your normal timing for guests.
+            
+            **Real examples (if normal timeout is 5 minutes):**
+            
+            • **1.5×** - 7.5 minutes total (slightly more patient)
+            
+            • **2.0×** - 10 minutes total (good for casual guests)
+            
+            • **2.5×** - 12.5 minutes total (recommended - very patient)
+            
+            • **3.0×** - 15 minutes total (extremely patient)
+            
+            
+            **Why longer for guests?**
+            
+            • **Unfamiliar layout** - Takes longer to navigate
+            
+            • **Conversation pauses** - Standing and talking
+            
+            • **Different habits** - Don't know your routine
+            
+            
+            💡 **Sweet spot:** 2.5× is patient without being wasteful.
           default: 2.5
           selector:
             number:
@@ -738,8 +1179,29 @@ blueprint:
         guest_override_multiplier:
           name: Guest Override Multiplier
           description: >
-            How much longer overrides last.
-            2.0 = Twice as long.
+            **How much longer should manual adjustments last?** Guests may want different lighting for longer periods.
+            
+            **Real examples (if normal override is 3 hours):**
+            
+            • **1.5×** - 4.5 hours total (slightly extended)
+            
+            • **2.0×** - 6 hours total (recommended - covers most visits)
+            
+            • **2.5×** - 7.5 hours total (full evening events)
+            
+            • **3.0×** - 9 hours total (overnight stays)
+            
+            
+            **Why longer for guests?**
+            
+            • **Don't know preferences** - They set lights how they like them
+            
+            • **Longer events** - Dinner parties, game nights
+            
+            • **Less familiar** - Can't easily readjust if automation resumes
+            
+            
+            💡 **Recommended:** 2.0× covers most social gatherings without being excessive.
           default: 2.0
           selector:
             number:
@@ -751,8 +1213,27 @@ blueprint:
         guest_ignore_bed:
           name: Ignore Bed Sensor in Guest Mode
           description: >
-            Disable bed sensor when guests present.
-            Useful for guest bedrooms.
+            **Should the bed sensor be disabled when guests are over?** Useful for guest bedrooms and different sleep schedules.
+            
+            **Why ignore bed sensors for guests?**
+            
+            • **Guest bedrooms** - Your bed sensor won't detect guest usage
+            
+            • **Different sleep times** - Guests may go to bed much earlier/later
+            
+            • **Unfamiliar setup** - Guests don't know how your bed automation works
+            
+            • **Avoid confusion** - Simpler lighting behavior for visitors
+            
+            
+            **When enabled:**
+            
+            • **Bed sensor ignored** - Lights work normally even if bed shows occupied
+            
+            • **Standard automation** - Only motion and time control lights
+            
+            
+            💡 **Recommended:** Enable this - keeps things simple and predictable for guests.
           default: true
           selector:
             boolean:
@@ -766,10 +1247,32 @@ blueprint:
         enable_debug_logs:
           name: Enable Debug Logging
           description: >
-            Detailed decision logs for troubleshooting.
-            View in: Settings → System → Logs
+            **Troubleshooting mode** - Creates detailed logs about every automation decision.
             
-            ⚠️ Creates many log entries - disable when not needed!
+            **What you'll see in the logs:**
+            
+            • **Why lights turned on/off** - Complete reasoning
+            
+            • **Sensor values** - Brightness, motion, timing data
+            
+            • **Decision steps** - How the automation chose what to do
+            
+            • **Error details** - If something goes wrong
+            
+            
+            **When to enable:**
+            
+            • **Lights not working as expected** - Diagnose the problem
+            
+            • **Setting up for first time** - Verify everything works
+            
+            • **After making changes** - Check new settings work correctly
+            
+            
+            **To view logs:** Settings → System → Logs (search for your room name)
+            
+            
+            ⚠️ **Important:** Creates LOTS of log entries - turn off when you're done troubleshooting!
           default: false
           selector:
             boolean:
@@ -777,9 +1280,32 @@ blueprint:
         enable_update_check:
           name: Check for Blueprint Updates
           description: >
-            Get notified about new versions.
+            **Stay up to date!** Get notifications when new blueprint versions are available.
             
-            ⚠️ Requires sensor setup (see blueprint description).
+            **What you get:**
+            
+            • **Version alerts** - Know when updates are released
+            
+            • **Bug fix notifications** - Important fixes for your automation
+            
+            • **New feature announcements** - Cool new capabilities
+            
+            • **Direct links** - Easy access to download updates
+            
+            
+            **How it works:**
+            
+            • **Checks GitHub** - Looks for new releases automatically
+            
+            • **Smart notifications** - Only alerts for newer versions
+            
+            • **No personal data** - Just version checking, nothing private
+            
+            
+            ⚠️ **Setup required:** You need to create the update sensor first (see blueprint description for instructions).
+            
+            
+            💡 **Recommended:** Enable this to get important bug fixes and new features!
           default: false
           selector:
             boolean:
