@@ -2794,8 +2794,16 @@ action:
                       {% if has_bed_sensor and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}
                         {{ false }}
                       {% else %}
-                        {{ (user_turned_on and auto_would_turn_on and not prevent_auto_on) or 
-                           (user_turned_off and auto_would_turn_off) }}
+                        {# Clear when user turns ON and automation wants ON (not blocked by daytime) #}
+                        {% set user_on_matches = user_turned_on and auto_would_turn_on and not prevent_auto_on %}
+                        
+                        {# Clear when user turns OFF and automation wants OFF #}
+                        {% set user_off_matches = user_turned_off and auto_would_turn_off %}
+                        
+                        {# Clear when user turns OFF during daytime when automation would also want OFF #}
+                        {% set daytime_off_matches = user_turned_off and prevent_auto_on and not auto_would_turn_on %}
+                        
+                        {{ user_on_matches or user_off_matches or daytime_off_matches }}
                       {% endif %}
                 sequence:
                   - service: input_boolean.turn_off
@@ -3157,6 +3165,28 @@ action:
                   - service: input_boolean.turn_off
                     target:
                       entity_id: "{{ automation_active_helper }}"
+                  
+                  # Clear manual override if automation turned off lights and it matches desired state
+                  - if:
+                      - condition: template
+                        value_template: >-
+                          {% set automation_off_matches_intent = auto_would_turn_off or prevent_auto_on %}
+                          {{ manual_override and automation_off_matches_intent }}
+                    then:
+                      - service: input_boolean.turn_off
+                        target:
+                          entity_id: "{{ manual_override_helper }}"
+                      - if:
+                          - condition: template
+                          value_template: "{{ enable_debug_logs }}"
+                        then:
+                          - service: system_log.write
+                            data:
+                              level: info
+                              message: >-
+                                [{{ room_name | upper }}] Manual override cleared
+                                │ Reason: Automation turned off lights matching desired state
+                                │ Daytime control active: {{ 'YES' if prevent_auto_on else 'NO' }}
                   
                   - if:
                       - condition: template

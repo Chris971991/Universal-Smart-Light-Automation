@@ -1,8 +1,8 @@
 # Universal Smart Presence Lighting Control
-### Version 3.8.8 - The Only Light Automation Blueprint You'll Ever Need
+### Version 3.8.9 - The Only Light Automation Blueprint You'll Ever Need
 
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Blueprint-blue)](https://www.home-assistant.io/docs/automation/using_blueprints/)
-[![Version](https://img.shields.io/badge/Version-3.8.8-green)]()
+[![Version](https://img.shields.io/badge/Version-3.8.9-green)]()
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)]()
 
 A sophisticated, universal lighting automation blueprint for Home Assistant that intelligently manages your lights based on presence, ambient light levels, and manual preferences. Works perfectly for **ANY** room type - bedrooms, offices, living rooms, kitchens, bathrooms, and more.
@@ -26,11 +26,11 @@ A sophisticated, universal lighting automation blueprint for Home Assistant that
 - **🌡️ Illuminance Averaging** - Filters out lighting spikes/drops
 - **🪟 Blinds Integration** - Coordinate natural light with automation (Coming Soon)
 
-### Latest Updates (v3.8.8)
-- **🚧 New** - Advanced Blinds Integration (Coming Soon) - Coordinate natural light with artificial lighting
-- **🔧 Simplified** - Removed bed entry/exit delays (handle in device or separate automation)
-- **✨ Enhanced** - Better field descriptions and user experience improvements
-- **📱 Improved** - More intuitive configuration interface
+### Latest Updates (v3.8.9)
+- **🎯 Fixed** - Intelligent daytime control and manual mode interaction
+- **✨ Enhanced** - Manual override now properly clears when actions match automation intent
+- **🔧 Improved** - Better handling of day/night transitions with manual overrides
+- **🚧 Coming Soon** - Advanced Blinds Integration - Coordinate natural light with artificial lighting
 
 ## 📋 Table of Contents
 - [Requirements](#-requirements)
@@ -254,10 +254,11 @@ graph TD
 
 ### Manual Override Logic
 
-The automation intelligently manages manual overrides:
+The automation intelligently manages manual overrides with enhanced daytime control integration:
 
 1. **Override SET when**:
    - You turn lights ON when it's bright
+   - You turn lights ON during daytime (when daytime control would prevent it)
    - You turn lights OFF when it's dark and you're present
    - Your action conflicts with automation intent
 
@@ -265,12 +266,15 @@ The automation intelligently manages manual overrides:
    - You turn lights ON when dark (matches automation)
    - You turn lights OFF when leaving (matches automation)
    - You turn lights OFF in bright room
+   - You turn lights OFF during daytime (matches daytime control intent)
+   - Automation turns lights OFF and it matches desired state
    - Timeout expires
    - Extended vacancy (if enabled)
 
 3. **Override RESPECTED**:
    - Automation won't change lights while override active
    - Manual control takes priority
+   - Daytime control respects manual overrides
 
 ## 🏠 Room-Specific Examples
 
@@ -407,6 +411,12 @@ A: Either disable the automation entity or use Guest Mode (Section 8) for modifi
 A: Ensure all helper entity IDs are lowercase. "Office" room = "office" in entity IDs.
 
 ## 📝 Version History
+
+### v3.8.9 (2025-09-06)
+- **🎯 Fixed**: Daytime control and manual mode now work seamlessly together
+- **✨ Enhanced**: Manual override clears properly when turning lights off during daytime
+- **🔧 Improved**: Automation-triggered light changes now properly clear manual override when appropriate
+- **🐛 Fixed**: Day/night transitions no longer get stuck in manual override
 
 ### v3.8.8 (2025-08-31)
 - **🚧 New**: Advanced Blinds Integration framework (Coming Soon) - Natural light coordination, privacy automation, anti-glare protection
