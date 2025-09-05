@@ -3178,7 +3178,7 @@ action:
                           entity_id: "{{ manual_override_helper }}"
                       - if:
                           - condition: template
-                          value_template: "{{ enable_debug_logs }}"
+                            value_template: "{{ enable_debug_logs }}"
                         then:
                           - service: system_log.write
                             data:
