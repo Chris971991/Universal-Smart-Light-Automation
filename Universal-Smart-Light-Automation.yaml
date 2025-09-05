@@ -3167,26 +3167,27 @@ action:
                       entity_id: "{{ automation_active_helper }}"
                   
                   # Clear manual override if automation turned off lights and it matches desired state
-                  - if:
-                      - condition: template
-                        value_template: >-
-                          {% set automation_off_matches_intent = auto_would_turn_off or prevent_auto_on %}
-                          {{ manual_override and automation_off_matches_intent }}
-                    then:
-                      - service: input_boolean.turn_off
-                        target:
-                          entity_id: "{{ manual_override_helper }}"
-                      - if:
+                  - choose:
+                      - conditions:
                           - condition: template
-                            value_template: "{{ enable_debug_logs }}"
-                        then:
-                          - service: system_log.write
-                            data:
-                              level: info
-                              message: >-
-                                [{{ room_name | upper }}] Manual override cleared
-                                │ Reason: Automation turned off lights matching desired state
-                                │ Daytime control active: {{ 'YES' if prevent_auto_on else 'NO' }}
+                            value_template: >-
+                              {% set automation_off_matches_intent = auto_would_turn_off or prevent_auto_on %}
+                              {{ manual_override and automation_off_matches_intent }}
+                        sequence:
+                          - service: input_boolean.turn_off
+                            target:
+                              entity_id: "{{ manual_override_helper }}"
+                          - if:
+                              - condition: template
+                                value_template: "{{ enable_debug_logs }}"
+                            then:
+                              - service: system_log.write
+                                data:
+                                  level: info
+                                  message: >-
+                                    [{{ room_name | upper }}] Manual override cleared
+                                    │ Reason: Automation turned off lights matching desired state
+                                    │ Daytime control active: {{ 'YES' if prevent_auto_on else 'NO' }}
                   
                   - if:
                       - condition: template
