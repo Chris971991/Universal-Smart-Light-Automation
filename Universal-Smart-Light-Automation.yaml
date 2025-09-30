@@ -1,9 +1,9 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - v3.9.0
+  name: Universal Smart Presence Lighting Control - v3.9.1
   description: >
     # 💡 Universal Smart Presence Lighting Control
 
-    **Version 3.9.0**
+    **Version 3.9.1**
     
     
     [📘 Documentation](https://github.com/Chris971991/universal-smart-light-automation) • [🐛 Report Issue](https://github.com/Chris971991/universal-smart-light-automation/issues) • [⭐ Star on GitHub](https://github.com/Chris971991/universal-smart-light-automation)
@@ -1397,7 +1397,7 @@ variables:
   start_time: "{{ now().timestamp() }}"
   
   # Version checking
-  blueprint_version: "3.8.9"  # UPDATE THIS WITH EACH RELEASE
+  blueprint_version: "3.9.1"  # UPDATE THIS WITH EACH RELEASE
   enable_update_check: !input enable_update_check
   update_sensor: "sensor.universal_lighting_updates"
   
