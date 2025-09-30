@@ -1,11 +1,43 @@
 # Universal Smart Presence Lighting Control
-### Version 3.8.9 - The Only Light Automation Blueprint You'll Ever Need
+### Version 3.10.0 - The Only Light Automation Blueprint You'll Ever Need
 
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Blueprint-blue)](https://www.home-assistant.io/docs/automation/using_blueprints/)
-[![Version](https://img.shields.io/badge/Version-3.8.9-green)]()
+[![Version](https://img.shields.io/badge/Version-3.10.0-green)]()
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)]()
 
 A sophisticated, universal lighting automation blueprint for Home Assistant that intelligently manages your lights based on presence, ambient light levels, and manual preferences. Works perfectly for **ANY** room type - bedrooms, offices, living rooms, kitchens, bathrooms, and more.
+
+---
+
+## 🚀 Quick Start - Setup Wizard (Recommended)
+
+**⚠️ Don't create helpers manually!** Use the Setup Wizard for 5-minute automated setup.
+
+### Installation
+
+1. **Install via HACS:**
+   - Open HACS → Integrations
+   - Click ⋮ Menu → Custom Repositories
+   - Add: `https://github.com/Chris971991/universal-smart-light-automation` (Category: Integration)
+   - Search "Universal Smart Lighting Setup Wizard" → Install
+   - Restart Home Assistant
+
+2. **Run the Wizard:**
+   - Settings → Devices & Services → Add Integration
+   - Search "Universal Smart Lighting Setup Wizard"
+   - Follow the 6-step guided wizard
+
+3. **Done!** Your automation is ready to use.
+
+**✨ What the wizard does:**
+- Creates all 6 required helpers automatically (package-based, isolated)
+- Validates your configuration to prevent errors
+- Generates complete automation with your settings
+- Takes 5 minutes vs 30+ minutes manual setup
+
+📖 **[Full Setup Wizard Guide](SETUP_WIZARD_README.md)**
+
+---
 
 ## 🌟 Key Features
 
@@ -16,21 +48,15 @@ A sophisticated, universal lighting automation blueprint for Home Assistant that
 - **🎨 Adaptive Brightness & Color** - Adjusts throughout the day for circadian rhythm
 - **🔧 Manual Override Protection** - Respects your manual control decisions
 - **⚡ Energy Efficient** - Automatically turns off when rooms are vacant
-- **🛏️ Bedroom Support** - Optional bed sensor integration (v3.8+)
+- **🛏️ Bedroom Support** - Optional bed sensor integration
 
-### Advanced Features (v3.8+)
+### Advanced Features
 - **☀️ Daytime Control** - Option to disable daytime lighting during daylight hours
 - **👥 Guest Mode** - Special behavior for visitors
 - **📊 Performance Tracking** - Monitors automation efficiency
 - **🔍 Debug Logging** - Detailed decision tree logging
 - **🌡️ Illuminance Averaging** - Filters out lighting spikes/drops
-- **🪟 Blinds Integration** - Coordinate natural light with automation (Coming Soon)
-
-### Latest Updates (v3.8.9)
-- **🎯 Fixed** - Intelligent daytime control and manual mode interaction
-- **✨ Enhanced** - Manual override now properly clears when actions match automation intent
-- **🔧 Improved** - Better handling of day/night transitions with manual overrides
-- **🚧 Coming Soon** - Advanced Blinds Integration - Coordinate natural light with artificial lighting
+- **🧙 Setup Wizard** - Automated 5-minute setup (NEW in v3.10.0)
 
 ## 📋 Table of Contents
 - [Requirements](#-requirements)
@@ -69,30 +95,29 @@ A sophisticated, universal lighting automation blueprint for Home Assistant that
 
 ## 🚀 Installation
 
-### Method 1: Import via URL
+### Blueprint Installation
+
+**Import via URL (Recommended):**
 1. Copy this URL:
    ```
-   https://github.com/YourUsername/universal-smart-light-automation/blob/main/universal-smart-light-automation.yaml
+   https://github.com/Chris971991/universal-smart-light-automation/blob/main/universal-smart-light-automation.yaml
    ```
-2. In Home Assistant, go to **Settings** → **Automations & Scenes** → **Blueprints**
+2. In Home Assistant: **Settings** → **Automations & Scenes** → **Blueprints**
 3. Click **Import Blueprint**
-4. Paste the URL and click **Preview**
-5. Click **Import Blueprint**
+4. Paste URL → **Preview** → **Import Blueprint**
 
-### Method 2: Manual Installation
+**Manual Installation:**
 1. Download `universal-smart-light-automation.yaml`
-2. Copy to your Home Assistant config folder:
-   ```
-   /config/blueprints/automation/universal-smart-light/
-   ```
+2. Copy to `/config/blueprints/automation/universal-smart-light/`
 3. Reload automations or restart Home Assistant
-4. Blueprint will appear in your blueprints list
 
-## 🛠️ Initial Setup
+## 🛠️ Manual Setup (Advanced Users Only)
+
+**⚠️ Note:** If you used the Setup Wizard, skip this section - everything is already created!
 
 ### Step 1: Create Required Helper Entities
 
-You **MUST** create these helper entities before using the blueprint. Replace `[room_name]` with your room name in **lowercase** (e.g., `office`, `bedroom`, `living_room`).
+If setting up manually, you **MUST** create these helper entities before using the blueprint. Replace `[room_name]` with your room name in **lowercase** (e.g., `office`, `bedroom`, `living_room`).
 
 #### Via UI (Recommended)
 Go to **Settings** → **Devices & Services** → **Helpers** and create:
