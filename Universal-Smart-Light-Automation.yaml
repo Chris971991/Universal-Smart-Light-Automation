@@ -1,162 +1,77 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - v3.9.2
-  description: >
-    # 💡 Universal Smart Presence Lighting Control
+  name: Universal Smart Presence Lighting Control - v3.10.0
+  description: |
+    **Universal Smart Presence Lighting Control v3.10.0**
 
-    **Version 3.9.2**
-    
-    
-    [📘 Documentation](https://github.com/Chris971991/universal-smart-light-automation) • [🐛 Report Issue](https://github.com/Chris971991/universal-smart-light-automation/issues) • [⭐ Star on GitHub](https://github.com/Chris971991/universal-smart-light-automation)
-    
-    
-    **The most comprehensive lighting automation for Home Assistant - one blueprint to rule them all!**
-    
-    
-    This advanced automation intelligently manages your lights using presence detection, ambient light sensing, and adaptive brightness control. It learns from your manual interactions, respects your preferences, and seamlessly adapts to different times of day. Whether it's a bedroom with sleep detection, an office with productivity lighting, or a living room with guest mode - this single blueprint handles it all with sophisticated logic that just works.
-    
-    
-    ✅ **Perfect for:** Bedrooms • Living Rooms • Offices • Kitchens • Bathrooms • Hallways • Any Space
-    
-    <details>
-    <summary><b>✨ Key Features</b> (Click to expand)</summary>
-    
-    
-    • 🎯 **Universal Design** - Works for ANY room type
-    
-    • 🏠 **Smart Presence Detection** - PIR, mmWave, and occupancy sensors
-    
-    • 💡 **Adaptive Lighting** - Brightness & color temperature by time of day
-    
-    • 🛏️ **Bedroom Mode** - Full bed sensor integration with delays
-    
-    • 🔧 **Manual Override** - Respects your manual control
-    
-    • ⚡ **Energy Saving** - Daytime control & away mode
-    
-    • 👥 **Guest Mode** - Special behavior for visitors
-    
-    
-    </details>
-    
-    <details>
-    <summary><b>⚠️ Required Helper Entities</b> (Click to expand)</summary>
-    
-    
-    **IMPORTANT**: Create these helpers BEFORE using this blueprint!
-    
-    
-    The `[room_name]` below must match what you'll enter in **Section 1: Room Setup → Room Name** field.
-    
-    
-    ⚠️ **Critical Rules:**
-    
-    • Use **lowercase** only (no capitals)
-    
-    • Use **underscores** for spaces (master_bedroom NOT master bedroom)
-    
-    • No special characters (!@#$%^&*)
-    
-    
-    **Replace `[room_name]` with your intended room name:**
-    
-    
-    1. `input_boolean.[room_name]_automation_active`
-    
-    2. `input_boolean.[room_name]_manual_override`
-    
-    3. `input_boolean.[room_name]_light_auto_on`
-    
-    4. `input_boolean.[room_name]_occupancy_state`
-    
-    5. `input_datetime.[room_name]_last_automation_action` *(Date AND Time enabled)*
-    
-    6. `input_text.[room_name]_illuminance_history` *(Max length: 255)*
-    
-    
-    **Examples:**
-    
-    • Single word: `office` → `input_boolean.office_automation_active`
-    
-    • Multiple words: `master_bedroom` → `input_boolean.master_bedroom_automation_active`
-    
-    • Living room: `living_room` → `input_boolean.living_room_automation_active`
-    
-    
-    ❌ **Wrong:** `Master Bedroom`, `master-bedroom`, `master bedroom`
-    
-    ✅ **Correct:** `master_bedroom`
-    
-    
-    💡 **Remember**: The Room Name in configuration must exactly match these helper names!
-    
-    
-    </details>
-    
-    <details>
-    <summary><b>🔔 Update Notifications - Optional</b> (Click to expand)</summary>
-    
-    
-    Get notified when new versions are available!
-    
-    
-    **1. Add to `configuration.yaml`:**
-    
-    ```yaml
-    sensor:
-      - platform: rest
-        name: "Universal Lighting Updates"
-        resource: https://api.github.com/repos/Chris971991/universal-smart-light-automation/releases/latest
-        value_template: >
-          {{ '{{' }} value_json.tag_name | default('unknown') {{ '}}' }}
-        scan_interval: 86400  # Time in seconds (86400 = 24 hours)
-    ```
-    
-    
-    **2. Restart Home Assistant**
-    
-    
-    **3. Enable "Check for Updates" in System & Diagnostics section**
-    
-    
-    **Customize Check Frequency** (scan_interval in seconds):
-    
-    • `86400` = 24 hours (1 day) - **Recommended**
-    
-    • `43200` = 12 hours (twice daily)
-    
-    • `604800` = 7 days (weekly)
-    
-    • `2592000` = 30 days (monthly)
-    
-    • `3600` = 1 hour - ⚠️ Not recommended (GitHub API rate limits)
-    
-    
-    **How to calculate:** Hours × 3600 = seconds (e.g., 6 hours = 6 × 3600 = 21600)
-    
-    
-    💡 **Note:** The automation also performs a check daily at 10:00 AM regardless of this setting.
-    
-    
-    </details>
-    
-    <details>
-    <summary><b>📚 Quick Start Guide</b> (Click to expand)</summary>
-    
-    
-    1. ✅ Create all required helper entities (see above)
-    
-    2. ✅ Create automation from this blueprint
-    
-    3. ✅ Configure Room Setup section
-    
-    4. ✅ Set up Presence Detection
-    
-    5. ✅ Adjust Light Level thresholds
-    
-    6. ✅ Optional: Configure advanced features
-    
-    
-    </details>
+    💡 The most comprehensive lighting automation for Home Assistant with intelligent presence detection, adaptive brightness, and circadian color control.
+
+    ---
+
+    ## 🚀 EASY SETUP - Use the Setup Wizard!
+
+    **⚠️ Don't create helpers manually!** Install the companion **Setup Wizard** for automated setup:
+
+    ✅ **5-Minute Setup** - Complete automation in ~5 minutes
+    ✅ **Zero Manual Work** - All 6 helpers created automatically
+    ✅ **Smart Validation** - Prevents configuration errors
+    ✅ **Safe & Isolated** - Package-based helpers won't affect existing setup
+
+    **Install via HACS:**
+    Settings → HACS → Integrations → ⋮ Menu → Custom Repositories
+    Add: `https://github.com/Chris971991/universal-smart-light-automation` (Category: Integration)
+
+    *Advanced users can still create helpers manually - see [Documentation](https://github.com/Chris971991/universal-smart-light-automation)*
+
+    ---
+
+    ## ✨ Key Features
+
+    **🎯 Universal Design:**
+    - Works for ANY room type (bedrooms, offices, living rooms, bathrooms, etc.)
+    - Supports smart switches, smart bulbs, or both
+    - PIR, mmWave, and radar sensor support
+
+    **💡 Intelligent Lighting:**
+    - Adaptive brightness by time of day
+    - Circadian color temperature control (day/night)
+    - Smooth fade on/off transitions
+    - Illuminance averaging prevents flickering
+
+    **🛏️ Bedroom Features:**
+    - Bed sensor integration (prevents lights during sleep)
+    - Auto-off when getting into bed
+    - Ultra-dim night mode for bathroom trips
+
+    **🔧 Smart Automation:**
+    - Manual override with configurable timeout
+    - Guest mode (longer timeouts, ignores bed sensor)
+    - Daytime energy saving with away detection
+    - Respects your manual control preferences
+
+    ---
+
+    ## 🆕 Latest Update - v3.10.0
+
+    **✨ New Features:**
+    - ✅ **Setup Wizard Released!** - 5-minute automated setup with zero manual helper creation
+    - ✅ HACS-compatible custom integration for guided configuration
+    - ✅ Package-based helper system (isolated, safe, easy to backup)
+    - ✅ Smart validation prevents configuration errors
+    - ✅ Automatic automation generation from wizard
+
+    📖 **Full changelog:** https://github.com/Chris971991/universal-smart-light-automation/releases
+
+    ---
+
+    ## 🔗 Quick Links
+
+    🚀 [Setup Wizard Installation](https://github.com/Chris971991/universal-smart-light-automation#setup-wizard)
+    📖 [Complete Documentation](https://github.com/Chris971991/universal-smart-light-automation/blob/main/README.md)
+    🐛 [Report Issues](https://github.com/Chris971991/universal-smart-light-automation/issues)
+
+    ---
+
+    **Blueprint Direct Import:** `https://github.com/Chris971991/universal-smart-light-automation/blob/main/universal-smart-light-automation.yaml`
 
   domain: automation
   input:

@@ -1,0 +1,140 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Room Setup",
+        "description": "Configure your room's basic lighting setup.\n\n**Room Name Rules:**\n• Use lowercase letters only\n• Replace spaces with underscores\n• Example: bedroom, living_room, home_office",
+        "data": {
+          "room_name": "Room Name",
+          "control_mode": "Control Mode",
+          "light_switch": "Light Switch Entity (Optional)",
+          "light_entities": "Smart Light Entities (Optional)"
+        },
+        "data_description": {
+          "room_name": "Unique name for this automation (lowercase, underscores for spaces)",
+          "control_mode": "How your lighting is wired",
+          "light_switch": "Wall switch entity (leave blank if using lights only)",
+          "light_entities": "Smart bulb entities (leave blank if using switch only)"
+        }
+      },
+      "presence_detection": {
+        "title": "Presence Detection",
+        "description": "Configure motion and occupancy sensors for smart presence detection.",
+        "data": {
+          "presence_pir_sensor": "Motion Sensor (PIR/mmWave/Radar)",
+          "presence_mmwave_sensor": "Occupancy Sensor (Optional)",
+          "sensor_off_latency_entity": "Dynamic Sensor Off Latency (Optional)",
+          "fixed_latency_seconds": "Fixed Sensor Off Latency (seconds)",
+          "vacancy_timeout_multiplier": "Vacancy Timeout Multiplier"
+        },
+        "data_description": {
+          "presence_pir_sensor": "Main presence sensor for the room",
+          "presence_mmwave_sensor": "Optional second sensor for better detection",
+          "sensor_off_latency_entity": "Number entity that controls sensor timeout",
+          "fixed_latency_seconds": "How long after motion stops before considering room empty",
+          "vacancy_timeout_multiplier": "Multiply sensor delay for lights-off timing"
+        }
+      },
+      "light_levels": {
+        "title": "Light Level Control",
+        "description": "Configure illuminance thresholds for smart lighting decisions.",
+        "data": {
+          "illuminance_sensor": "Illuminance Sensor",
+          "dark_threshold": "Dark Threshold (Lights ON) - lux",
+          "bright_threshold": "Bright Threshold (Natural Light OK) - lux",
+          "extremely_dark_threshold": "Extremely Dark Threshold - lux",
+          "enable_illuminance_averaging": "Enable Illuminance Averaging"
+        },
+        "data_description": {
+          "illuminance_sensor": "Sensor that measures room brightness",
+          "dark_threshold": "Below this brightness, lights turn on (30-50 lux recommended)",
+          "bright_threshold": "Above this brightness, lights stay off (150-250 lux recommended)",
+          "extremely_dark_threshold": "Pitch black level for night mode (0-5 lux)",
+          "enable_illuminance_averaging": "Smooth out sensor readings to prevent flickering"
+        }
+      },
+      "manual_override": {
+        "title": "Manual Override Behavior",
+        "description": "Control how the automation responds to manual light adjustments.",
+        "data": {
+          "override_behavior": "Override Clearing Method",
+          "override_timeout_hours": "Override Timeout Duration (hours)",
+          "override_respect_presence": "Respect Presence for Timeout",
+          "vacancy_clear_minutes": "Vacancy Clear Time (minutes)"
+        },
+        "data_description": {
+          "override_behavior": "How manual control is cleared",
+          "override_timeout_hours": "How long manual changes last (1-24 hours)",
+          "override_respect_presence": "Pause timeout while room is occupied",
+          "vacancy_clear_minutes": "Room empty time before clearing override"
+        }
+      },
+      "optional_features": {
+        "title": "Optional Features",
+        "description": "Enable additional features like daytime control, bed sensors, and guest mode.",
+        "data": {
+          "enable_daytime_control": "Enable Daytime Energy Saving",
+          "daytime_control_mode": "Daytime Lighting Control",
+          "presence_trackers": "Device Trackers (for away detection)",
+          "enable_bed_sensor": "Enable Bed Sensor",
+          "bed_occupied_helper": "Bed Occupancy Sensor",
+          "turn_off_when_bed_occupied": "Auto-Off When Getting Into Bed",
+          "enable_guest_mode": "Enable Guest Mode",
+          "enable_debug_logs": "Enable Debug Logging",
+          "enable_update_check": "Check for Blueprint Updates"
+        },
+        "data_description": {
+          "enable_daytime_control": "Save energy during daytime hours",
+          "daytime_control_mode": "How lights behave when sun is up",
+          "presence_trackers": "Track if anyone is home",
+          "enable_bed_sensor": "Use bed sensor for bedroom automation",
+          "bed_occupied_helper": "Sensor that detects bed occupancy",
+          "turn_off_when_bed_occupied": "Lights off when getting into bed",
+          "enable_guest_mode": "Special behavior when guests visit",
+          "enable_debug_logs": "Create detailed logs for troubleshooting",
+          "enable_update_check": "Get notified of blueprint updates"
+        }
+      },
+      "adaptive_lighting": {
+        "title": "Adaptive Lighting & Guest Settings",
+        "description": "Configure adaptive brightness, color temperature, fade effects, and guest mode multipliers.",
+        "data": {
+          "enable_adaptive_brightness": "Enable Adaptive Brightness",
+          "enable_color_temperature": "Enable Color Temperature Control",
+          "day_color_temp": "Daytime Color Temperature (Kelvin)",
+          "night_color_temp": "Nighttime Color Temperature (Kelvin)",
+          "enable_fade_on": "Enable Fade On",
+          "fade_on_time": "Fade On Duration (seconds)",
+          "enable_fade_off": "Enable Fade Off",
+          "fade_off_time": "Fade Off Duration (seconds)",
+          "guest_vacancy_multiplier": "Guest Vacancy Multiplier",
+          "guest_override_multiplier": "Guest Override Multiplier",
+          "guest_ignore_bed": "Ignore Bed Sensor in Guest Mode"
+        },
+        "data_description": {
+          "enable_adaptive_brightness": "Brightness adapts to time of day",
+          "enable_color_temperature": "Color changes throughout the day (circadian)",
+          "day_color_temp": "Cool energizing light during day (4000-6500K)",
+          "night_color_temp": "Warm relaxing light at night (2700-3500K)",
+          "enable_fade_on": "Gradually brighten when turning on",
+          "fade_on_time": "How fast lights fade in (0.5-10 seconds)",
+          "enable_fade_off": "Gradually dim when turning off",
+          "fade_off_time": "How fast lights fade out (0.5-10 seconds)",
+          "guest_vacancy_multiplier": "How much longer lights stay on for guests (1.5-5.0x)",
+          "guest_override_multiplier": "How much longer manual control lasts for guests (1.5-5.0x)",
+          "guest_ignore_bed": "Disable bed sensor when guests visit"
+        }
+      }
+    },
+    "error": {
+      "invalid_room_name": "Invalid room name. Use lowercase letters, numbers, and underscores only.",
+      "room_name_too_short": "Room name must be at least 2 characters long.",
+      "helpers_exist": "Helper entities already exist for this room name. Choose a different name or delete existing helpers first.",
+      "bright_must_exceed_dark": "Bright threshold must be at least 10 lux higher than dark threshold.",
+      "setup_failed": "Failed to create setup. Check logs for details."
+    },
+    "abort": {
+      "setup_failed": "Setup failed. Please check the logs and try again."
+    }
+  }
+}
