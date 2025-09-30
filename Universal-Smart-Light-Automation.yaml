@@ -1,9 +1,9 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - v3.9.1
+  name: Universal Smart Presence Lighting Control - v3.9.2
   description: >
     # 💡 Universal Smart Presence Lighting Control
 
-    **Version 3.9.1**
+    **Version 3.9.2**
     
     
     [📘 Documentation](https://github.com/Chris971991/universal-smart-light-automation) • [🐛 Report Issue](https://github.com/Chris971991/universal-smart-light-automation/issues) • [⭐ Star on GitHub](https://github.com/Chris971991/universal-smart-light-automation)
@@ -1995,13 +1995,15 @@ variables:
   is_illuminance_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == illuminance_sensor }}"
   is_periodic_trigger: "{{ trigger.platform == 'time_pattern' }}"
   is_sun_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == 'sun.sun' }}"
-  # FIXED v3.8.6: Bed trigger detected via state change check
+  # FIXED v3.9.2: Bed trigger only on actual occupancy changes, not unavailable states
   is_bed_trigger: >-
     {% if has_bed_sensor and is_periodic_trigger %}
       {% if states[bed_occupied_helper] %}
+        {% set current_state = states(bed_occupied_helper) %}
         {% set last_change = as_timestamp(states[bed_occupied_helper].last_changed, 0) %}
-        {% if last_change > 0 %}
-          {{ (now().timestamp() - last_change) < 5 }}
+        {% if last_change > 0 and (now().timestamp() - last_change) < 5 %}
+          {# Only trigger if current state is valid (on/off), not unavailable/unknown #}
+          {{ current_state in ['on', 'off'] }}
         {% else %}
           {{ false }}
         {% endif %}
