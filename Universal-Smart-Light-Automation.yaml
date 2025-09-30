@@ -1,9 +1,9 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - v3.8.9
+  name: Universal Smart Presence Lighting Control - v3.9.0
   description: >
     # 💡 Universal Smart Presence Lighting Control
-    
-    **Version 3.8.8**
+
+    **Version 3.9.0**
     
     
     [📘 Documentation](https://github.com/Chris971991/universal-smart-light-automation) • [🐛 Report Issue](https://github.com/Chris971991/universal-smart-light-automation/issues) • [⭐ Star on GitHub](https://github.com/Chris971991/universal-smart-light-automation)
@@ -2791,20 +2791,20 @@ action:
               - conditions:
                   - condition: template
                     value_template: >-
-                      {% if has_bed_sensor and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}
-                        {{ false }}
-                      {% else %}
-                        {# Clear when user turns ON and automation wants ON (not blocked by daytime) #}
-                        {% set user_on_matches = user_turned_on and auto_would_turn_on and not prevent_auto_on %}
-                        
-                        {# Clear when user turns OFF and automation wants OFF #}
-                        {% set user_off_matches = user_turned_off and auto_would_turn_off %}
-                        
-                        {# Clear when user turns OFF during daytime when automation would also want OFF #}
-                        {% set daytime_off_matches = user_turned_off and prevent_auto_on and not auto_would_turn_on %}
-                        
-                        {{ user_on_matches or user_off_matches or daytime_off_matches }}
-                      {% endif %}
+                      {# Clear when user turns ON and automation wants ON (not blocked by daytime) #}
+                      {% set user_on_matches = user_turned_on and auto_would_turn_on and not prevent_auto_on %}
+
+                      {# Clear when user turns OFF and automation wants OFF #}
+                      {% set user_off_matches = user_turned_off and auto_would_turn_off %}
+
+                      {# Clear when user turns OFF during daytime when automation would also want OFF #}
+                      {% set daytime_off_matches = user_turned_off and prevent_auto_on and not auto_would_turn_on %}
+
+                      {# FIXED v3.9.0: Allow override clear when user manually turns off lights while bed occupied #}
+                      {# This matches automation intent (bed occupied should turn off lights) #}
+                      {% set bed_off_matches = user_turned_off and has_bed_sensor and bed_occupied and turn_off_when_bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}
+
+                      {{ user_on_matches or user_off_matches or daytime_off_matches or bed_off_matches }}
                 sequence:
                   - service: input_boolean.turn_off
                     target:
