@@ -1,7 +1,7 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - v3.10.0
+  name: Universal Smart Presence Lighting Control - v3.10.1
   description: |
-    **Universal Smart Presence Lighting Control v3.10.0**
+    **Universal Smart Presence Lighting Control v3.10.1**
 
     💡 The most comprehensive lighting automation for Home Assistant with intelligent presence detection, adaptive brightness, and circadian color control.
 
@@ -50,14 +50,12 @@ blueprint:
 
     ---
 
-    ## 🆕 Latest Update - v3.10.0
+    ## 🆕 Latest Update - v3.10.1
 
-    **✨ New Features:**
-    - ✅ **Setup Wizard Released!** - 5-minute automated setup with zero manual helper creation
-    - ✅ HACS-compatible custom integration for guided configuration
-    - ✅ Package-based helper system (isolated, safe, easy to backup)
-    - ✅ Smart validation prevents configuration errors
-    - ✅ Automatic automation generation from wizard
+    **🐛 Bug Fixes:**
+    - ✅ Fixed lights not turning off at sunrise + offset when daytime control enabled
+    - ✅ Restored automatic turn-off when transitioning from nighttime to daytime
+    - ✅ Added daytime detection to auto_would_turn_off logic
 
     📖 **Full changelog:** https://github.com/Chris971991/universal-smart-light-automation/releases
 
@@ -1942,11 +1940,13 @@ variables:
       {{ is_dark and someone_present }}
     {% endif %}
   
-  # Turn OFF is always allowed (energy saving) - includes bed occupancy
+  # Turn OFF is always allowed (energy saving) - includes bed occupancy and daytime control
   auto_would_turn_off: >-
     {% if not someone_present and lights_on %}
       {{ true }}
     {% elif has_bed_sensor and turn_off_when_bed_occupied and bed_occupied and lights_on and not (enable_guest_mode and guest_ignore_bed) %}
+      {{ true }}
+    {% elif no_daytime_lights_active and lights_on %}
       {{ true }}
     {% else %}
       {{ false }}
