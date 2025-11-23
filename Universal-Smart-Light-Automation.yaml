@@ -1,7 +1,7 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - v3.10.1
+  name: Universal Smart Presence Lighting Control - v3.10.2
   description: |
-    **Universal Smart Presence Lighting Control v3.10.1**
+    **Universal Smart Presence Lighting Control v3.10.2**
 
     💡 The most comprehensive lighting automation for Home Assistant with intelligent presence detection, adaptive brightness, and circadian color control.
 
@@ -50,12 +50,12 @@ blueprint:
 
     ---
 
-    ## 🆕 Latest Update - v3.10.1
+    ## 🆕 Latest Update - v3.10.2
 
     **🐛 Bug Fixes:**
-    - ✅ Fixed lights not turning off at sunrise + offset when daytime control enabled
-    - ✅ Restored automatic turn-off when transitioning from nighttime to daytime
-    - ✅ Added daytime detection to auto_would_turn_off logic
+    - ✅ Fixed template error when automation triggered without state change (e.g., time-based triggers)
+    - ✅ Added safety checks for trigger.to_state and trigger.from_state attributes
+    - ✅ Prevents "dict object has no attribute 'to_state'" errors
 
     📖 **Full changelog:** https://github.com/Chris971991/universal-smart-light-automation/releases
 
@@ -1927,8 +1927,8 @@ variables:
       {{ false }}
     {% endif %}
   
-  user_turned_on: "{{ is_primary_trigger and trigger.to_state.state == 'on' and trigger.from_state.state == 'off' }}"
-  user_turned_off: "{{ is_primary_trigger and trigger.to_state.state == 'off' and trigger.from_state.state == 'on' }}"
+  user_turned_on: "{{ is_primary_trigger and trigger.to_state is defined and trigger.from_state is defined and trigger.to_state.state == 'on' and trigger.from_state.state == 'off' }}"
+  user_turned_off: "{{ is_primary_trigger and trigger.to_state is defined and trigger.from_state is defined and trigger.to_state.state == 'off' and trigger.from_state.state == 'on' }}"
   
   # Automation intent with daytime control - SIMPLIFIED for bed sensor
   auto_would_turn_on: >-
@@ -2991,9 +2991,10 @@ action:
                       - conditions:
                           - condition: template
                             value_template: >-
-                              {{ has_bed_sensor and 
-                                 turn_off_when_bed_occupied and 
-                                 is_bed_trigger and 
+                              {{ has_bed_sensor and
+                                 turn_off_when_bed_occupied and
+                                 is_bed_trigger and
+                                 trigger.to_state is defined and
                                  trigger.to_state.state == 'on' and
                                  not (enable_guest_mode and guest_ignore_bed) }}
                         sequence:
