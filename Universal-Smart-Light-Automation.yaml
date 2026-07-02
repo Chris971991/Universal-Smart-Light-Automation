@@ -1,7 +1,7 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - v3.10.3
+  name: Universal Smart Presence Lighting Control - v3.11.0
   description: |
-    **Universal Smart Presence Lighting Control v3.10.3**
+    **Universal Smart Presence Lighting Control v3.11.0**
 
     💡 The most comprehensive lighting automation for Home Assistant with intelligent presence detection, adaptive brightness, and circadian color control.
 
@@ -50,19 +50,17 @@ blueprint:
 
     ---
 
-    ## 🆕 Latest Update - v3.10.3
+    ## 🆕 Latest Update - v3.11.0
 
-    **🐛 Bug Fixes:**
-    - ✅ Fixed version checker reporting wrong version (was stuck at 3.9.1)
-    - ✅ Fixed bed-triggered OFF path that could never execute
-    - ✅ Fixed override clearing while user is present with manually-adjusted lights
-    - ✅ Fixed missing helper error messages showing empty lists
-    - ✅ Fixed dimmability detection for on/off-only light entities
+    **🛏️ Bed Sensor Overhaul:**
+    - ✅ Bed entry/exit delays are BACK - no more lights blasting on when you roll over
+    - ✅ Bed sensor dropouts (unavailable) no longer turn lights on over a sleeping occupant
+    - ✅ Instant bed reaction via a dedicated bed sensor trigger
 
-    **⚡ Improvements:**
-    - ✅ Room name auto-sanitized to match Setup Wizard format
-    - ✅ Smoother circadian color temperature transitions (fractional hours)
-    - ✅ Added threshold inversion guard to prevent misconfiguration
+    **🐛 Major Bug Fixes (25+):**
+    - ✅ Vacancy timeout now actually works - lights no longer turn off the instant the sensor clears
+    - ✅ Manual light-off at night is no longer undone by the automation
+    - ✅ Fixed HA 2026.3 color temperature compatibility, illuminance averaging, and much more
 
     📖 **Full changelog:** https://github.com/Chris971991/universal-smart-light-automation/releases
 
@@ -144,7 +142,7 @@ blueprint:
             
             
             💡 **Tip:** If you selected "Smart Lights Only" above, you can ignore this field.
-          default: ""
+          default: []
           selector:
             entity:
               domain: [switch, light]
@@ -189,7 +187,7 @@ blueprint:
             • **Standard motion sensors** - Any Home Assistant motion/occupancy sensor
             
             
-            💡 **Only have one sensor?** Use it here AND select it again below for best results.
+            💡 **Only have one sensor?** Just select it here - leave the Occupancy Sensor below empty.
           selector:
             entity:
               domain: binary_sensor
@@ -213,12 +211,12 @@ blueprint:
             • **Backup detection** - One sensor might miss you, two won't
             
             
-            💡 **Single sensor setup?** Select the same sensor as above - it still helps!
-          default: ""
+            💡 **Single sensor setup?** Leave this empty - your motion sensor above is used automatically.
+          default: []
           selector:
             entity:
               domain: binary_sensor
-              device_class: 
+              device_class:
                 - motion
                 - occupancy
                 - presence
@@ -393,8 +391,11 @@ blueprint:
             
             
             **What happens:** Lights automatically start at much lower brightness to avoid blinding you.
-            
-            
+
+
+            ⚠️ **Requires:** "Enable Adaptive Brightness" (Adaptive Lighting section) AND dimmable lights - otherwise this threshold has no effect.
+
+
             💡 **Perfect for:** Late night bathroom trips or checking on kids without waking anyone.
           default: 3
           selector:
@@ -716,10 +717,10 @@ blueprint:
             
             
             💡 **Don't have a bed sensor?** Skip this - the other settings will still work great!
-          default: ""
+          default: []
           selector:
             entity:
-              domain: 
+              domain:
                 - binary_sensor
                 - input_boolean
         
@@ -748,121 +749,69 @@ blueprint:
             
             
             💡 **Most people love this** - it's like having a smart bedtime routine!
+
+
+            ⏱️ **Timing:** Uses the "Bed Entry Delay" below so briefly sitting on the bed doesn't kill the lights.
           default: true
           selector:
             boolean:
-        
-        blinds_entities:
-          name: 😧 Blinds/Covers (Coming Soon)
+
+        bed_exit_delay_seconds:
+          name: Bed Exit Delay
           description: >
-            🚧 **COMING SOON - Advanced Blinds Integration**
-            
-            
-            **This exciting feature will include:**
-            
-            • **Natural Light Optimization** - Auto-open at sunrise to reduce artificial lighting
-            
-            • **Privacy Automation** - Smart closing at sunset and when lights turn on
-            
-            • **Ambiance Enhancement** - Coordinate blinds position with lighting for perfect atmosphere
-            
-            • **Anti-Glare Protection** - Automatically adjust when room gets too bright
-            
-            • **Manual Override Respect** - Won't interfere when you manually adjust
-            
-            • **Guest Mode Integration** - Special behavior when visitors are present
-            
-            
-            💡 **Why integrate blinds with lighting?** Natural light and artificial light work together for optimal comfort and energy efficiency!
-            
-            
-            🚀 **Status:** Feature structure complete - will be enabled in an upcoming release.
-          default: []
+            **How long must the bed read "empty" before lights may turn on?**
+
+
+            Prevents lights from blasting on in your face when you roll over and the
+            bed sensor briefly loses you. The bed must be continuously empty for this
+            many seconds before the automation treats it as a real bed exit.
+
+
+            • **5-10 sec** - Fast response (accurate load-cell sensors)
+
+            • **15-20 sec** - Recommended (handles roll-overs on pressure mats)
+
+            • **30+ sec** - Very twitchy sensors
+
+
+            💡 **Recommended:** 15 seconds. Set to 0 to disable the delay.
+          default: 15
           selector:
-            select:
-              options:
-                - label: "🚧 Coming Soon - Feature Not Yet Available"
-                  value: ""
-              mode: dropdown
-        
-        enable_blinds_automation:
-          name: 😧 Enable Blinds Automation (Coming Soon)
+            number:
+              min: 0
+              max: 120
+              unit_of_measurement: sec
+              mode: slider
+              step: 5
+
+        bed_entry_delay_seconds:
+          name: Bed Entry Delay
           description: >
-            🚧 **COMING SOON** - Master switch for all blinds automation features.
-            
-            
-            **When enabled, this will coordinate your blinds with:**
-            
-            • **Sunrise/sunset times** - Natural daily rhythm
-            
-            • **Room occupancy** - Only adjust when you're present
-            
-            • **Light sensor readings** - Respond to brightness changes
-            
-            • **Manual overrides** - Respect your preferences
-            
-            
-            🔧 **Currently disabled** - Full functionality coming in future update.
-          default: "false"
+            **How long must the bed read "occupied" before lights turn off?**
+
+
+            Prevents lights from turning off when you briefly sit on the bed
+            (putting on socks, grabbing something). The bed must be continuously
+            occupied for this many seconds before "Auto-Off When Getting Into Bed" fires.
+
+
+            • **5-10 sec** - Quick bedtime response
+
+            • **15-20 sec** - Recommended (ignores brief sits)
+
+            • **30+ sec** - You often sit on the bed without staying
+
+
+            💡 **Recommended:** 15 seconds. Set to 0 to disable the delay.
+          default: 15
           selector:
-            select:
-              options:
-                - label: "🚧 Disabled - Coming Soon"
-                  value: "false"
-              mode: dropdown
-        
-        blinds_privacy_mode:
-          name: 😧 Privacy Mode (Coming Soon)
-          description: >
-            🚧 **COMING SOON** - Automatically close blinds for privacy when lights turn on after dark.
-            
-            
-            **Smart privacy features:**
-            
-            • **Evening Protection** - Auto-close when lights turn on after sunset
-            
-            • **Customizable Position** - Set how much to close (25%, 50%, 75%, 100%)
-            
-            • **Room Awareness** - Different behavior for bedrooms vs living areas
-            
-            • **Override Detection** - Won't close if you've recently opened them manually
-            
-            
-            💡 **Perfect for:** Evening comfort without sacrificing privacy or having to remember to close blinds.
-          default: "true"
-          selector:
-            select:
-              options:
-                - label: "🚧 Disabled - Coming Soon"
-                  value: "true"
-              mode: dropdown
-        
-        blinds_natural_light_mode:
-          name: 😧 Natural Light Optimization (Coming Soon)
-          description: >
-            🚧 **COMING SOON** - Coordinate blinds with sunrise/sunset for maximum natural light and energy savings.
-            
-            
-            **Energy-saving features:**
-            
-            • **Sunrise Opening** - Auto-open blinds to let morning light in
-            
-            • **Sunset Closing** - Close for evening privacy and ambiance
-            
-            • **Brightness Coordination** - Adjust based on room light levels
-            
-            • **Seasonal Adaptation** - Different behavior throughout the year
-            
-            
-            🌅 **Result:** Reduced artificial lighting needs and perfect natural light timing.
-          default: "true"
-          selector:
-            select:
-              options:
-                - label: "🚧 Disabled - Coming Soon"
-                  value: "true"
-              mode: dropdown
-    
+            number:
+              min: 0
+              max: 120
+              unit_of_measurement: sec
+              mode: slider
+              step: 5
+
     # Section 7: Adaptive Lighting
     adaptive_lighting:
       name: "Adaptive Lighting"
@@ -1165,6 +1114,9 @@ blueprint:
             
             
             💡 **Sweet spot:** 2.5× is patient without being wasteful.
+
+
+            🔧 **Note:** Also multiplies the "Vacancy Clear Time" for manual overrides.
           default: 2.5
           selector:
             number:
@@ -1311,63 +1263,54 @@ blueprint:
           selector:
             boolean:
 
-# Variables and state management - SIMPLIFIED v3.8.8 with blinds integration
+# Variables and state management - v3.11.0 comprehensive hardening
 variables:
   # Store start time for performance monitoring
   start_time: "{{ now().timestamp() }}"
-  
+
   # Version checking
-  blueprint_version: "3.10.3"  # UPDATE THIS WITH EACH RELEASE
+  blueprint_version: "3.11.0"  # UPDATE THIS WITH EACH RELEASE
   enable_update_check: !input enable_update_check
   update_sensor: "sensor.universal_lighting_updates"
   
-  # Check if sensor exists and has data
+  # v3.11.0: Distinguish "sensor entity doesn't exist" from "sensor temporarily has no data"
+  update_sensor_missing: "{{ states[update_sensor] is none }}"
+
+  # Sensor exists and currently has valid data
   sensor_exists: >-
-    {{ states(update_sensor) not in ['unknown', 'unavailable', None] }}
-  
-  # Get latest version safely
-  latest_version: >-
-    {% if sensor_exists %}
-      {{ states(update_sensor) | replace('v', '') | replace('V', '') }}
-    {% else %}
-      {{ blueprint_version }}
-    {% endif %}
-  
-  # Check if update available
+    {{ not update_sensor_missing and states(update_sensor) not in ['unknown', 'unavailable'] }}
+
+  # v3.11.0: Compare versions inside ONE template so version strings are never
+  # native-parsed into numbers ('3.10' -> 3.1). Non-numeric suffixes are stripped
+  # per component ('4-beta' -> 4) instead of zeroing the whole component.
   update_available: >-
     {% if enable_update_check and sensor_exists %}
-      {% set current = blueprint_version | replace('v', '') | replace('V', '') %}
-      {% set latest = latest_version %}
-      {% if current != latest %}
-        {% set current_parts = current.split('.') | map('int', 0) | list %}
-        {% set latest_parts = latest.split('.') | map('int', 0) | list %}
-        {% if latest_parts[0] > current_parts[0] %}
-          true
-        {% elif latest_parts[0] == current_parts[0] and latest_parts[1] | default(0) > current_parts[1] | default(0) %}
-          true
-        {% elif latest_parts[0] == current_parts[0] and latest_parts[1] | default(0) == current_parts[1] | default(0) and latest_parts[2] | default(0) > current_parts[2] | default(0) %}
-          true
-        {% else %}
-          false
-        {% endif %}
+      {% set current = blueprint_version | string | replace('v', '') | replace('V', '') %}
+      {% set latest = states(update_sensor) | string | replace('v', '') | replace('V', '') %}
+      {% if current == latest %}
+        {{ false }}
       {% else %}
-        false
+        {% set cparts = current.split('.') | map('regex_replace', '[^0-9].*$', '') | map('int', 0) | list %}
+        {% set lparts = latest.split('.') | map('regex_replace', '[^0-9].*$', '') | map('int', 0) | list %}
+        {% set cur = [cparts[0] | default(0), cparts[1] | default(0), cparts[2] | default(0)] %}
+        {% set lat = [lparts[0] | default(0), lparts[1] | default(0), lparts[2] | default(0)] %}
+        {{ lat > cur }}
       {% endif %}
     {% else %}
-      false
+      {{ false }}
     {% endif %}
-  
-  # Get release info if available
+
+  # Get release info if available (default(x, true) also replaces None, not just undefined)
   release_name: >-
     {% if sensor_exists %}
-      {{ state_attr(update_sensor, 'name') | default('New Version Available') }}
+      {{ state_attr(update_sensor, 'name') | default('New Version Available', true) }}
     {% else %}
       ""
     {% endif %}
-  
+
   release_url: >-
     {% if sensor_exists %}
-      {{ state_attr(update_sensor, 'html_url') | default('https://github.com/Chris971991/universal-smart-light-automation/releases/latest') }}
+      {{ state_attr(update_sensor, 'html_url') | default('https://github.com/Chris971991/universal-smart-light-automation/releases/latest', true) }}
     {% else %}
       ""
     {% endif %}
@@ -1375,22 +1318,29 @@ variables:
   # Input variables
   room_name: !input room_name
   presence_pir_sensor: !input presence_pir_sensor
-  presence_mmwave_sensor: !input presence_mmwave_sensor
   illuminance_sensor: !input illuminance_sensor
-  light_switch: !input light_switch
   light_entities: !input light_entities
   control_mode: !input control_mode
+
+  # v3.11.0: Optional entity inputs may be '' (legacy configs) or [] (new empty default,
+  # required so the state triggers validate when the input is left blank).
+  # Normalize to a plain string ('' when unset) so all downstream logic has one shape.
+  presence_mmwave_sensor_raw: !input presence_mmwave_sensor
+  presence_mmwave_sensor: >-
+    {% if presence_mmwave_sensor_raw is string %}{{ presence_mmwave_sensor_raw }}{% elif presence_mmwave_sensor_raw %}{{ presence_mmwave_sensor_raw[0] }}{% endif %}
+  light_switch_raw: !input light_switch
+  light_switch: >-
+    {% if light_switch_raw is string %}{{ light_switch_raw }}{% elif light_switch_raw %}{{ light_switch_raw[0] }}{% endif %}
   daytime_control_mode: !input daytime_control_mode
   presence_trackers: !input presence_trackers
   sunrise_offset_minutes: !input sunrise_offset_minutes
   sunset_offset_minutes: !input sunset_offset_minutes
-  bed_occupied_helper: !input bed_occupied_helper
+  bed_occupied_helper_raw: !input bed_occupied_helper
+  bed_occupied_helper: >-
+    {% if bed_occupied_helper_raw is string %}{{ bed_occupied_helper_raw }}{% elif bed_occupied_helper_raw %}{{ bed_occupied_helper_raw[0] }}{% endif %}
   turn_off_when_bed_occupied: !input turn_off_when_bed_occupied
-  # Blinds integration - COMING SOON
-  blinds_entities: !input blinds_entities
-  enable_blinds_automation: !input enable_blinds_automation
-  blinds_privacy_mode: !input blinds_privacy_mode
-  blinds_natural_light_mode: !input blinds_natural_light_mode
+  bed_exit_delay_seconds: !input bed_exit_delay_seconds
+  bed_entry_delay_seconds: !input bed_entry_delay_seconds
   dark_threshold: !input dark_threshold
   bright_threshold: !input bright_threshold
   extremely_dark_threshold: !input extremely_dark_threshold
@@ -1495,46 +1445,39 @@ variables:
     {{ sunset_ts + offset_seconds }}
   
   # Determine if it's currently daytime (between sunrise+offset and sunset+offset)
+  # v3.11.0: Handles offsets that push a boundary past midnight; degenerate-offset
+  # fallback aligned with is_sun_up (-0.833 accounts for atmospheric refraction).
   is_daytime: >-
     {% set now_ts = now().timestamp() %}
     {% set sunrise_offset_ts = sunrise_with_offset | float %}
     {% set sunset_offset_ts = sunset_with_offset | float %}
-    
-    {# Handle edge cases #}
     {% if sunrise_offset_ts >= sunset_offset_ts %}
-      {# This shouldn't happen unless offsets are extreme #}
-      {# Use sun elevation as fallback #}
-      {{ sun_elevation > 0 }}
+      {# Degenerate window (extreme offsets / polar latitudes) - use sun elevation #}
+      {{ sun_elevation > -0.833 }}
+    {% elif sunrise_offset_ts <= now_ts < sunset_offset_ts %}
+      {{ true }}
+    {% elif now_ts < sunrise_offset_ts and now_ts < (sunset_offset_ts - 86400) %}
+      {# Yesterday's daytime window extended past midnight (large positive sunset offset) #}
+      {{ true }}
     {% else %}
-      {# Normal case: daytime is between sunrise+offset and sunset+offset #}
-      {{ sunrise_offset_ts <= now_ts < sunset_offset_ts }}
+      {{ false }}
     {% endif %}
-  
+
   # Alternative method using sun elevation as validation
   # (Sun is typically above horizon when elevation > -0.833 degrees, accounting for atmospheric refraction)
   is_sun_up: "{{ sun_elevation > -0.833 }}"
-  
-  # Double-check daytime calculation with sun elevation for reliability
-  # If there's a major discrepancy, trust the sun elevation
+
+  # v3.11.0: The old elevation "cross-check" silently overrode any sunrise/sunset
+  # offset beyond +/-60 min (the offset window IS a legitimate disagreement with the
+  # sun's raw elevation). Trust the offset math whenever sun data exists; fall back
+  # to elevation only when the sun integration has no rise/set data (polar regions).
   is_daytime_verified: >-
-    {% set now_ts = now().timestamp() %}
-    {% set sunrise_offset_ts = sunrise_with_offset | float %}
-    {% set sunset_offset_ts = sunset_with_offset | float %}
-    {% set time_based_daytime = is_daytime %}
-    {% set elevation_based_daytime = is_sun_up %}
-    
-    {# If both agree, we're good #}
-    {% if time_based_daytime == elevation_based_daytime %}
-      {{ time_based_daytime }}
-    {# If they disagree, check if we're near sunrise/sunset (within 60 minutes) #}
-    {% elif (now_ts - sunrise_offset_ts) | abs < 3600 or (now_ts - sunset_offset_ts) | abs < 3600 %}
-      {# Near transition time, trust the time-based calculation with offsets #}
-      {{ time_based_daytime }}
+    {% if sun_next_rising and sun_next_setting %}
+      {{ is_daytime }}
     {% else %}
-      {# Not near transition, something might be wrong, trust sun elevation #}
-      {{ elevation_based_daytime }}
+      {{ is_sun_up }}
     {% endif %}
-  
+
   # Use the verified daytime value for the rest of the automation
   is_daytime_final: "{{ is_daytime_verified }}"
   
@@ -1621,14 +1564,10 @@ variables:
       {{ state }}
     {% endif %}
   
-  illuminance_state: >-
-    {% set state = states(illuminance_sensor) %}
-    {% if state in ['unknown', 'unavailable', None, ''] %}
-      50
-    {% else %}
-      {{ state }}
-    {% endif %}
-  
+  # v3.11.0: Track illuminance sensor validity instead of masking failures with a magic "50"
+  illuminance_sensor_invalid: >-
+    {{ states[illuminance_sensor] is none or states(illuminance_sensor) in ['unknown', 'unavailable', ''] }}
+
   bed_state: >-
     {% if has_bed_sensor %}
       {% set state = states(bed_occupied_helper) %}
@@ -1682,22 +1621,76 @@ variables:
   someone_present: >-
     {{ pir_active or mmwave_active }}
   
-  # SIMPLIFIED v3.8.6: Simple bed occupancy without complex delay tracking
+  # v3.11.0: Robust bed occupancy with validity tracking + entry/exit stability windows
   bed_occupied_raw: "{{ has_bed_sensor and bed_state == 'on' }}"
-  
-  # Final bed occupied state considering guest mode
+
+  # Bed sensor ignored entirely for guests?
+  bed_ignored_for_guests: "{{ enable_guest_mode and guest_ignore_bed }}"
+
+  # Bed sensor is configured but not reporting a valid on/off state
+  bed_sensor_invalid: >-
+    {{ has_bed_sensor and (states[bed_occupied_helper] is none or
+       states(bed_occupied_helper) in ['unknown', 'unavailable', '']) }}
+
+  # Seconds since the bed sensor last changed state (very large if unknown)
+  bed_state_age: >-
+    {% if has_bed_sensor and states[bed_occupied_helper] is not none %}
+      {{ (current_time - as_timestamp(states[bed_occupied_helper].last_changed, current_time)) | round(1) }}
+    {% else %}
+      {{ 999999 }}
+    {% endif %}
+
+  # Final bed occupied state considering guest mode (instantaneous - used for
+  # classifying the user's own manual actions)
   bed_occupied: >-
     {% if not has_bed_sensor %}
       {{ false }}
-    {% elif enable_guest_mode and guest_ignore_bed %}
+    {% elif bed_ignored_for_guests %}
       {{ false }}
     {% else %}
       {{ bed_occupied_raw }}
     {% endif %}
+
+  # Bed read 'off' but only vacated moments ago (bed EXIT delay window).
+  # Blocks auto-ON so a roll-over blip doesn't light up the room.
+  bed_recently_exited: >-
+    {% if not has_bed_sensor or bed_ignored_for_guests or bed_sensor_invalid %}
+      {{ false }}
+    {% elif bed_state == 'off' %}
+      {{ bed_state_age < (bed_exit_delay_seconds | float(15)) }}
+    {% else %}
+      {{ false }}
+    {% endif %}
+
+  # Should the bed block automatic turn-ON right now?
+  # - genuinely occupied, or
+  # - sensor dropped out < 10 min ago (fail-safe: never light up a possibly-sleeping
+  #   occupant during a sensor reboot/Wi-Fi blip; after 10 min the sensor is
+  #   considered dead and normal motion lighting resumes), or
+  # - vacated less than bed_exit_delay_seconds ago (roll-over debounce)
+  bed_blocks_auto_on: >-
+    {% if not has_bed_sensor or bed_ignored_for_guests %}
+      {{ false }}
+    {% elif bed_occupied_raw %}
+      {{ true }}
+    {% elif bed_sensor_invalid and bed_state_age < 600 %}
+      {{ true }}
+    {% else %}
+      {{ bed_recently_exited }}
+    {% endif %}
+
+  # Bed considered occupied for AUTO-OFF: must be continuously occupied for the
+  # bed ENTRY delay so briefly sitting on the bed doesn't kill the lights.
+  bed_occupied_sustained: >-
+    {% if not has_bed_sensor or bed_ignored_for_guests or bed_sensor_invalid %}
+      {{ false }}
+    {% elif bed_occupied_raw %}
+      {{ bed_state_age >= (bed_entry_delay_seconds | float(15)) }}
+    {% else %}
+      {{ false }}
+    {% endif %}
   
-  # Illuminance with averaging
-  illuminance_raw: "{{ illuminance_state | float(50) }}"
-  
+  # Illuminance with averaging (history parsed first - the raw fallback uses it)
   illuminance_history_raw: >-
     {% if states[illuminance_history_helper] %}
       {% set history = states(illuminance_history_helper) %}
@@ -1710,48 +1703,58 @@ variables:
       []
     {% endif %}
 
-  # Smart illuminance averaging with spike AND drop detection
+  # v3.11.0: When the sensor is offline, fall back to the last stored history average
+  # (best estimate) and only then to bright_threshold - which safely suppresses
+  # auto-ON while the sensor is down (auto-OFF never depends on illuminance).
+  illuminance_raw: >-
+    {% if not illuminance_sensor_invalid %}
+      {{ states(illuminance_sensor) | float(bright_threshold | float(200)) }}
+    {% else %}
+      {% set history_str = illuminance_history_raw | string %}
+      {% if history_str.startswith('[') and history_str.endswith(']') %}
+        {% set values = history_str[1:-1].split(',') | select | map('float', 0) | list %}
+        {% if values | length > 0 %}
+          {{ ((values | sum) / (values | length)) | round(2) }}
+        {% else %}
+          {{ bright_threshold | float(200) }}
+        {% endif %}
+      {% else %}
+        {{ bright_threshold | float(200) }}
+      {% endif %}
+    {% endif %}
+
+  # v3.11.0: Smart illuminance averaging, rewritten. The old version accumulated
+  # filtered values with {% set %} inside a {% for %} loop, which Jinja2 scoping
+  # silently discards - averaging was a complete no-op. The outlier filter was also
+  # inverted (it discarded HISTORY that disagreed with a new spike). New logic:
+  # - big drop (lights turned off): trust the new reading immediately
+  # - big spike (flash/headlights): reject the sample, keep the average
+  # - otherwise: mean of the last 4 stored readings + the new one
   illuminance: >-
-    {% if not enable_illuminance_averaging %}
+    {% if not enable_illuminance_averaging or illuminance_sensor_invalid %}
       {{ illuminance_raw | round(2) }}
     {% else %}
-      {% if illuminance_history_raw == '[]' or illuminance_history_raw == [] %}
-        {{ illuminance_raw | round(2) }}
-      {% else %}
-        {% set history_str = illuminance_history_raw | string %}
-        {% if history_str.startswith('[') and history_str.endswith(']') %}
-          {% set values = history_str[1:-1].split(',') | select | map('float', 0) | list %}
-          
-          {% if values | length > 0 %}
-            {% set last_avg = (values | sum) / (values | length) %}
-            {% set change_ratio = illuminance_raw / last_avg if last_avg > 0 else 1 %}
-            
-            {# Detect both drops AND spikes #}
-            {% if change_ratio < 0.3 and last_avg > 20 %}
-              {# Major drop detected - likely lights turned off #}
-              {{ illuminance_raw | round(2) }}
-            {% elif change_ratio > 5 and illuminance_raw > 500 %}
-              {# Major spike detected - likely flash/lightning #}
-              {{ last_avg | round(2) }}
-            {% else %}
-              {# Remove outliers in both directions #}
-              {% set filtered_values = [] %}
-              {% for val in values[-4:] %}
-                {% set val_ratio = val / illuminance_raw if illuminance_raw > 0 else 999 %}
-                {% if 0.2 < val_ratio < 5 or (illuminance_raw < 20 and val < 50) %}
-                  {% set filtered_values = filtered_values + [val] %}
-                {% endif %}
-              {% endfor %}
-              
-              {% set all_values = filtered_values + [illuminance_raw | float] %}
-              {{ ((all_values | sum) / (all_values | length)) | round(2) }}
-            {% endif %}
-          {% else %}
+      {% set history_str = illuminance_history_raw | string %}
+      {% if history_str.startswith('[') and history_str.endswith(']') %}
+        {% set values = history_str[1:-1].split(',') | select | map('float', 0) | list %}
+        {% if values | length > 0 %}
+          {% set last_avg = (values | sum) / (values | length) %}
+          {% set change_ratio = (illuminance_raw / last_avg) if last_avg > 0 else 1 %}
+          {% if change_ratio < 0.3 and last_avg > ([(dark_threshold | float(30)), 10] | max) %}
+            {# Major drop detected - likely lights turned off - trust it immediately #}
             {{ illuminance_raw | round(2) }}
+          {% elif change_ratio > 5 and illuminance_raw > ([(bright_threshold | float(200)) * 3, 200] | max) %}
+            {# Major spike detected - likely flash/lightning - reject this sample #}
+            {{ last_avg | round(2) }}
+          {% else %}
+            {% set recent = values[-4:] %}
+            {{ (((recent | sum) + illuminance_raw) / ((recent | length) + 1)) | round(2) }}
           {% endif %}
         {% else %}
           {{ illuminance_raw | round(2) }}
         {% endif %}
+      {% else %}
+        {{ illuminance_raw | round(2) }}
       {% endif %}
     {% endif %}
   
@@ -1839,8 +1842,13 @@ variables:
   # Time calculations
   primary_changed_seconds_ago: "{{ (current_time - primary_changed_time) | round(1) }}"
   override_active_minutes: "{{ ((current_time - override_changed_time) / 60) | round(1) }}"
+  # v3.11.0: If the occupancy helper still reads 'on', the room only JUST became
+  # vacant and the helper hasn't been synced yet - vacancy is 0, not the entire
+  # previous occupancy duration (which cleared overrides on a single sensor blip).
   room_vacant_minutes: >-
     {% if someone_present %}
+      0
+    {% elif states[occupancy_state_helper] is not none and is_state(occupancy_state_helper, 'on') %}
       0
     {% else %}
       {{ ((current_time - occupancy_changed_time) / 60) | round(1) }}
@@ -1869,96 +1877,113 @@ variables:
   override_recently_set: "{{ manual_override and (current_time - override_changed_time) < 5 }}"
   
   # Enhanced manual change detection
+  # v3.11.0: Window widened from <1s to <3s - the input_datetime helper stores whole
+  # seconds, so the old sub-second window misclassified the automation's own switch
+  # changes as manual ~10-30% of the time. (Primary defense is now the context-based
+  # service-call filter in the condition block; this is the belt to that suspender.)
   is_manual_change: >-
-    {% if trigger.platform != 'state' %}
+    {% if trigger.platform != 'state' or not is_primary_trigger %}
       {{ false }}
-    {% elif control_mode == 'switch_only' and trigger.entity_id == light_switch %}
-      {% if automation_active and not automation_active_stale and time_since_last_automation < 1 %}
-        {{ false }}
-      {% else %}
-        {{ true }}
-      {% endif %}
-    {% elif control_mode != 'switch_only' and trigger.entity_id in light_entities %}
-      {% if automation_active and not automation_active_stale and time_since_last_automation < 1 %}
-        {{ false }}
-      {% else %}
-        {{ true }}
-      {% endif %}
+    {% elif automation_active and not automation_active_stale and time_since_last_automation < 3 %}
+      {{ false }}
     {% else %}
-      {{ false }}
+      {{ true }}
     {% endif %}
-  
+
   # Trigger analysis
+  # v3.11.0: In switch_and_lights mode the physical wall switch is also a primary
+  # control - flips of it now participate in manual override logic.
   is_primary_trigger: >-
     {% if control_mode == 'switch_only' %}
-      {{ trigger.platform == 'state' and trigger.entity_id == light_switch }}
+      {{ trigger.platform == 'state' and trigger.entity_id is defined and trigger.entity_id == light_switch }}
+    {% elif control_mode == 'switch_and_lights' %}
+      {{ trigger.platform == 'state' and trigger.entity_id is defined and
+         (trigger.entity_id in light_entities or (has_switch and trigger.entity_id == light_switch)) }}
     {% else %}
-      {{ trigger.platform == 'state' and trigger.entity_id in light_entities }}
+      {{ trigger.platform == 'state' and trigger.entity_id is defined and trigger.entity_id in light_entities }}
     {% endif %}
   is_pir_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == presence_pir_sensor }}"
   is_mmwave_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == mmwave_sensor }}"
   is_illuminance_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == illuminance_sensor }}"
   is_periodic_trigger: "{{ trigger.platform == 'time_pattern' }}"
   is_sun_trigger: "{{ trigger.platform == 'state' and trigger.entity_id == 'sun.sun' }}"
-  # FIXED v3.9.2: Bed trigger only on actual occupancy changes, not unavailable states
+  # v3.11.0: Bed changes now arrive via a dedicated state trigger (instant, no
+  # 5-second polling race). The periodic tick still re-evaluates the delay windows.
   is_bed_trigger: >-
-    {% if has_bed_sensor and is_periodic_trigger %}
-      {% if states[bed_occupied_helper] %}
-        {% set current_state = states(bed_occupied_helper) %}
-        {% set last_change = as_timestamp(states[bed_occupied_helper].last_changed, 0) %}
-        {% if last_change > 0 and (now().timestamp() - last_change) < 5 %}
-          {# Only trigger if current state is valid (on/off), not unavailable/unknown #}
-          {{ current_state in ['on', 'off'] }}
-        {% else %}
-          {{ false }}
-        {% endif %}
-      {% else %}
-        {{ false }}
-      {% endif %}
-    {% else %}
-      {{ false }}
-    {% endif %}
-  
+    {{ has_bed_sensor and trigger.platform == 'state' and
+       trigger.entity_id is defined and trigger.entity_id == bed_occupied_helper }}
+
   user_turned_on: "{{ is_primary_trigger and trigger.to_state is defined and trigger.from_state is defined and trigger.to_state.state == 'on' and trigger.from_state.state == 'off' }}"
   user_turned_off: "{{ is_primary_trigger and trigger.to_state is defined and trigger.from_state is defined and trigger.to_state.state == 'off' and trigger.from_state.state == 'on' }}"
-  
+
+  # Guest mode adjustments
+  effective_vacancy_multiplier: >-
+    {{ (vacancy_timeout_multiplier * guest_vacancy_multiplier) if enable_guest_mode else vacancy_timeout_multiplier }}
+
+  effective_override_hours: >-
+    {{ (override_timeout_hours * guest_override_multiplier) if enable_guest_mode else override_timeout_hours }}
+
+  effective_vacancy_clear_minutes: >-
+    {{ (vacancy_clear_minutes * guest_vacancy_multiplier) if enable_guest_mode else vacancy_clear_minutes }}
+
+  # Sensor latency calculation
+  # v3.11.0: Removed the hidden guest-mode x1.5 here - guest patience is already
+  # covered (once) by the documented guest_vacancy_multiplier.
+  sensor_off_latency_seconds: >-
+    {% if sensor_off_latency_entity and sensor_off_latency_entity != '' %}
+      {% set latency = states(sensor_off_latency_entity) | float(0) %}
+      {{ latency if latency > 0 else fixed_latency_seconds }}
+    {% else %}
+      {{ fixed_latency_seconds }}
+    {% endif %}
+
+  # Vacancy timeout calculation (minutes lights stay on after the room reads vacant)
+  vacancy_timeout_minutes: >-
+    {% set timeout = ((sensor_off_latency_seconds | float(60)) * (effective_vacancy_multiplier | float(5))) / 60 %}
+    {{ [timeout | round(0, 'ceil'), 1] | max | int }}
+
   # Automation intent with daytime control
+  # v3.11.0: Uses bed_blocks_auto_on (validity + exit-delay aware) instead of the
+  # instantaneous bed state - a bed blip or sensor dropout no longer allows auto-ON.
   auto_would_turn_on: >-
     {% if prevent_auto_on %}
       {{ false }}
-    {% elif bed_occupied %}
+    {% elif bed_blocks_auto_on %}
       {{ false }}
     {% else %}
       {{ is_dark and someone_present }}
     {% endif %}
 
-  # Turn OFF is always allowed (energy saving) - includes bed occupancy and daytime control
+  # Turn OFF intent - includes bed occupancy and daytime control
+  # v3.11.0: The vacancy branch now actually honors the vacancy timeout (it used to
+  # be computed but never consulted - lights went off the instant the sensor cleared).
+  # The bed branch requires SUSTAINED occupancy (bed entry delay).
   auto_would_turn_off: >-
-    {% if not someone_present and lights_on %}
+    {% if not someone_present and lights_on and room_vacant_minutes >= vacancy_timeout_minutes %}
       {{ true }}
-    {% elif has_bed_sensor and turn_off_when_bed_occupied and bed_occupied and lights_on %}
+    {% elif has_bed_sensor and turn_off_when_bed_occupied and bed_occupied_sustained and lights_on %}
       {{ true }}
     {% elif no_daytime_lights_active and lights_on %}
       {{ true }}
     {% else %}
       {{ false }}
     {% endif %}
-  
-  # Guest mode adjustments
-  effective_vacancy_multiplier: >-
-    {{ (vacancy_timeout_multiplier * guest_vacancy_multiplier) if enable_guest_mode else vacancy_timeout_multiplier }}
-  
-  effective_override_hours: >-
-    {{ (override_timeout_hours * guest_override_multiplier) if enable_guest_mode else override_timeout_hours }}
-  
-  effective_vacancy_clear_minutes: >-
-    {{ (vacancy_clear_minutes * guest_vacancy_multiplier) if enable_guest_mode else vacancy_clear_minutes }}
-  
+
+  # What the automation WOULD want if lights were still on - used to classify a
+  # user's manual OFF (lights_on is already false by the time we evaluate it).
+  auto_would_turn_off_prechange: >-
+    {{ (not someone_present) or
+       (has_bed_sensor and turn_off_when_bed_occupied and bed_occupied) or
+       no_daytime_lights_active }}
+
   # Override timeout logic with guest mode and presence respect
+  # v3.11.0: The respect-presence path now requires SUSTAINED vacancy (>= 5 min)
+  # instead of a single instantaneous reading, so one mmWave blip while you sit
+  # still can no longer clear an expired override out from under you.
   override_timeout_exceeded: >-
     {% if manual_override and (override_active_minutes / 60) > effective_override_hours %}
       {% if override_respect_presence %}
-        {{ not someone_present }}
+        {{ not someone_present and room_vacant_minutes >= 5 }}
       {% else %}
         {{ true }}
       {% endif %}
@@ -1983,29 +2008,30 @@ variables:
       "unknown"
     {% endif %}
   
-  # Light capabilities (check first available light entity)
-  first_light_entity: >-
-    {% if has_lights %}
-      {{ light_entities[0] }}
-    {% elif has_switch and light_switch.startswith('light.') %}
-      {{ light_switch }}
-    {% else %}
-      none
-    {% endif %}
-  
+  # Light capabilities
+  # v3.11.0: Checks the entity that will actually be commanded. For light_entities
+  # lists, ANY dimmable/color member counts (HA silently filters unsupported
+  # parameters per entity, so sending them is safe; omitting them was the bug).
   light_is_dimmable: >-
-    {% if first_light_entity != 'none' %}
-      {% set modes = state_attr(first_light_entity, 'supported_color_modes') or [] %}
-      {{ modes | reject('eq', 'onoff') | list | count > 0 }}
+    {% if control_mode == 'switch_only' or not has_lights %}
+      {% if has_switch and light_switch.startswith('light.') %}
+        {% set modes = state_attr(light_switch, 'supported_color_modes') or [] %}
+        {{ modes | reject('eq', 'onoff') | list | count > 0 }}
+      {% else %}
+        {{ false }}
+      {% endif %}
     {% else %}
-      {{ false }}
+      {{ expand(light_entities) | map(attribute='attributes.supported_color_modes')
+         | select | sum(start=[]) | reject('eq', 'onoff') | list | count > 0 }}
     {% endif %}
-  
+
   light_supports_color_temp: >-
-    {% if first_light_entity != 'none' %}
-      {{ state_attr(first_light_entity, 'min_color_temp_kelvin') is not none }}
+    {% if control_mode == 'switch_only' or not has_lights %}
+      {{ has_switch and light_switch.startswith('light.') and
+         state_attr(light_switch, 'min_color_temp_kelvin') is not none }}
     {% else %}
-      {{ false }}
+      {{ expand(light_entities) | selectattr('attributes.min_color_temp_kelvin', 'defined')
+         | selectattr('attributes.min_color_temp_kelvin', 'ne', none) | list | count > 0 }}
     {% endif %}
   
   # Adaptive brightness calculation
@@ -2085,22 +2111,6 @@ variables:
       0
     {% endif %}
   
-  # Sensor latency calculation with guest mode
-  sensor_off_latency_seconds: >-
-    {% if sensor_off_latency_entity and sensor_off_latency_entity != '' %}
-      {% set latency = states(sensor_off_latency_entity) | float(0) %}
-      {% set base_latency = latency if latency > 0 else fixed_latency_seconds %}
-    {% else %}
-      {% set base_latency = fixed_latency_seconds %}
-    {% endif %}
-    {{ (base_latency * 1.5) if enable_guest_mode else base_latency }}
-  
-  # Vacancy timeout calculation
-  vacancy_timeout_minutes: >-
-    {% set timeout = (sensor_off_latency_seconds * effective_vacancy_multiplier) / 60 %}
-    {{ [timeout | round(0, 'ceil'), 1] | max | int }}
-
-# [REST OF THE FILE REMAINS EXACTLY THE SAME - trigger, condition, and action sections]
 # Triggers - Universal handling with optional bed sensor
 trigger:
   # State changes
@@ -2124,14 +2134,25 @@ trigger:
     entity_id: !input light_entities
     id: light_change
     
+  # v3.11.0: to: filter = fires only on the two real day/night transitions,
+  # not on every elevation/azimuth attribute update
   - platform: state
     entity_id: sun.sun
+    to:
+      - "above_horizon"
+      - "below_horizon"
     id: sun_change
-    
-  # NOTE: Bed sensor handled via periodic check to avoid empty entity errors
-  # Periodic checks (handles bed sensor and other monitoring)
+
+  # v3.11.0: Dedicated bed sensor trigger for instant reaction (empty [] default
+  # simply never fires for rooms without a bed sensor)
+  - platform: state
+    entity_id: !input bed_occupied_helper
+    id: bed_change
+
+  # Periodic evaluation - drives all delayed decisions (bed entry/exit delays,
+  # vacancy timeout, override expiry, sunrise/sunset offset boundaries)
   - platform: time_pattern
-    seconds: "/5"  # Check every 5 seconds for responsive bed delays
+    seconds: "/5"
     id: periodic_check
   
   # Check for updates periodically
@@ -2170,6 +2191,23 @@ condition:
          (trigger.from_state is defined and trigger.to_state is defined and
           trigger.from_state.state != trigger.to_state.state) }}
 
+  # v3.11.0: Skip the duplicate run when PIR and Occupancy inputs are the same entity
+  # (both state triggers fire for one physical change; keep only the pir_change run)
+  - condition: template
+    value_template: >-
+      {{ trigger.id != 'mmwave_change' or mmwave_sensor != presence_pir_sensor }}
+
+  # v3.11.0: Ignore light/switch state changes caused by SERVICE CALLS (this
+  # automation's own commands, scripts, other automations) - they carry a parent
+  # context id. Physical presses, dashboard toggles and voice commands do not,
+  # so only genuine user actions drive the manual-override logic. This also stops
+  # mode:restart from killing a run via its own light command echo.
+  - condition: template
+    value_template: >-
+      {{ trigger.id not in ['switch_change', 'light_change'] or
+         trigger.to_state is not defined or
+         trigger.to_state.context.parent_id is none }}
+
 # Actions
 action:
   # Performance tracking start
@@ -2186,17 +2224,19 @@ action:
         sequence:
           # Check if sensor exists, if not show setup instructions
           - choose:
-              # Sensor missing - show setup instructions
+              # Sensor entity truly absent - show setup instructions.
+              # v3.11.0: An EXISTING sensor whose data is temporarily 'unknown'
+              # (GitHub rate limit / network blip) no longer re-triggers setup spam.
               - conditions:
                   - condition: template
-                    value_template: "{{ not sensor_exists }}"
+                    value_template: "{{ update_sensor_missing }}"
                 sequence:
                   - service: persistent_notification.create
                     data:
                       title: "💡 Enable Update Notifications - {{ room_name }}"
-                      message: >-
+                      message: |-
                         To get update notifications for your lighting automation:
-                        
+
                         **Add this to `configuration.yaml`:**
                         ```yaml
                         sensor:
@@ -2206,11 +2246,11 @@ action:
                             value_template: "{{ '{{ value_json.tag_name | default(\'unknown\') }}' }}"
                             scan_interval: 86400
                         ```
-                        
+
                         Then restart Home Assistant. This message will only appear once per day.
-                      notification_id: "lighting_update_setup_{{ room_name | lower | replace(' ', '_') }}"
-              
-              # Update available - show update notification  
+                      notification_id: "lighting_update_setup_{{ sanitized_room_name }}"
+
+              # Update available - show update notification
               - conditions:
                   - condition: template
                     value_template: "{{ sensor_exists and update_available }}"
@@ -2219,26 +2259,26 @@ action:
                     data:
                       title: "🎉 Lighting Update Available - {{ room_name }}"
                       message: >-
-                        **New version {{ latest_version }} is available!**
+                        **New version {{ states(update_sensor) }} is available!**
                         You have version {{ blueprint_version }}
-                        
+
                         **{{ release_name }}**
-                        
+
                         **How to Update:**
                         1. Go to **Settings** → **Automations & Scenes** → **Blueprints**
                         2. Find "Universal Smart Presence Lighting Control"
                         3. Click **⋮** → **Re-import Blueprint**
                         4. Your automations will keep working!
-                        
+
                         [📖 View What's New]({{ release_url }})
-                      notification_id: "lighting_update_available_{{ room_name | lower | replace(' ', '_') }}"
-                  
+                      notification_id: "lighting_update_available_{{ sanitized_room_name }}"
+
                   # Clear the setup notification if it exists
                   - service: persistent_notification.dismiss
                     data:
-                      notification_id: "lighting_update_setup_{{ room_name | lower | replace(' ', '_') }}"
+                      notification_id: "lighting_update_setup_{{ sanitized_room_name }}"
                     continue_on_error: true
-              
+
               # Up to date - clear any notifications
               - conditions:
                   - condition: template
@@ -2246,56 +2286,57 @@ action:
                 sequence:
                   - service: persistent_notification.dismiss
                     data:
-                      notification_id: "lighting_update_available_{{ room_name | lower | replace(' ', '_') }}"
+                      notification_id: "lighting_update_available_{{ sanitized_room_name }}"
                     continue_on_error: true
                   - service: persistent_notification.dismiss
                     data:
-                      notification_id: "lighting_update_setup_{{ room_name | lower | replace(' ', '_') }}"
+                      notification_id: "lighting_update_setup_{{ sanitized_room_name }}"
                     continue_on_error: true
   
   # Skip the update check triggers for normal automation
   - condition: template
     value_template: "{{ trigger.id not in ['update_check', 'update_sensor_changed'] }}"
   
-  # NEW v3.8.2: Check for missing trackers when required
+  # Check for missing trackers when required
+  # v3.11.0: Rate-limited to once per hour (was created every 5 seconds and then
+  # immediately dismissed by the cleanup block in the same run - never visible)
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ trackers_missing and is_periodic_trigger }}"
+            value_template: "{{ trackers_missing and is_periodic_trigger and now().minute == 0 and now().second < 5 }}"
         sequence:
           - service: persistent_notification.create
             data:
               title: "{{ room_name }} - Configuration Warning"
               message: >-
                 ⚠️ "Block When Away" mode requires device trackers!
-                
+
                 You've selected "Block When Away" but haven't configured any device trackers.
                 The automation will work but won't prevent daytime lighting when away.
-                
+
                 To fix: Add device trackers in the automation configuration.
-              notification_id: "{{ room_name }}_tracker_warning"
-  
-  # State recovery - clear stale helpers
+              notification_id: "{{ sanitized_room_name }}_tracker_warning"
+
+  # State recovery - clear a genuinely STUCK automation_active flag
+  # v3.11.0: Now requires the helper to actually be ON (the old age-only check fired
+  # forever in any room idle >24h, and wrongly wiped manual overrides within seconds
+  # of the user setting them). Override lifetime is governed solely by the override
+  # timeout/vacancy logic - never by this recovery block.
   - choose:
       - conditions:
           - condition: template
             value_template: >-
-              {% set helpers_stale = false %}
-              {% if states[automation_active_helper] and states[automation_active_helper].last_changed %}
-                {% set age_hours = (current_time - as_timestamp(states[automation_active_helper].last_changed, current_time)) / 3600 %}
-                {% if age_hours > 24 %}
-                  {% set helpers_stale = true %}
-                {% endif %}
+              {% if states[automation_active_helper] is not none and
+                    is_state(automation_active_helper, 'on') and
+                    states[automation_active_helper].last_changed %}
+                {{ (current_time - as_timestamp(states[automation_active_helper].last_changed, current_time)) / 3600 > 24 }}
+              {% else %}
+                {{ false }}
               {% endif %}
-              {{ helpers_stale }}
         sequence:
           - service: input_boolean.turn_off
             target:
               entity_id: "{{ automation_active_helper }}"
-            continue_on_error: true
-          - service: input_boolean.turn_off
-            target:
-              entity_id: "{{ manual_override_helper }}"
             continue_on_error: true
           - if:
               - condition: template
@@ -2304,7 +2345,7 @@ action:
               - service: system_log.write
                 data:
                   level: warning
-                  message: "[{{ room_name | upper }}] State recovery: Reset stale helpers after >24h"
+                  message: "[{{ room_name | upper }}] State recovery: Reset stuck automation_active flag after >24h"
   
   # Clear stale automation_active flag FIRST
   - choose:
@@ -2324,11 +2365,14 @@ action:
                   level: info
                   message: "[{{ room_name | upper }}] Cleared stale automation_active flag"
   
-  # Stop if thresholds are inverted (dark >= bright)
+  # Inverted thresholds (dark >= bright)
+  # v3.11.0: The stop is now UNCONDITIONAL (it used to only halt periodic runs -
+  # motion/light-triggered runs kept actuating with a broken config). The
+  # notification/log are rate-limited to once per 30 min instead of every 5 s.
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ not thresholds_valid and is_periodic_trigger }}"
+            value_template: "{{ not thresholds_valid and is_periodic_trigger and now().minute % 30 == 0 and now().second < 5 }}"
         sequence:
           - service: persistent_notification.create
             data:
@@ -2339,36 +2383,40 @@ action:
 
                 Current settings are inverted which will prevent the automation
                 from working correctly. Please fix this in the automation settings.
-              notification_id: "{{ room_name }}_threshold_inverted"
+              notification_id: "{{ sanitized_room_name }}_threshold_inverted"
           - service: system_log.write
             data:
               level: error
               message: >-
                 [{{ room_name | upper }}] CRITICAL: Inverted thresholds! Dark ({{ dark_threshold }}) >= Bright ({{ bright_threshold }})
-          - stop: "Inverted threshold configuration"
+  - if:
+      - condition: template
+        value_template: "{{ not thresholds_valid }}"
+    then:
+      - stop: "Inverted threshold configuration"
 
-  # Threshold validation warnings (with conditional logging)
+  # Threshold validation warnings (rate-limited)
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ threshold_gap_critical and is_periodic_trigger }}"
+            value_template: "{{ threshold_gap_critical and is_periodic_trigger and now().minute % 30 == 0 and now().second < 5 }}"
         sequence:
           - service: persistent_notification.create
             data:
               title: "{{ room_name }} - Critical Threshold Warning"
               message: >-
                 ⚠️ Your dark/bright thresholds are critically close ({{ threshold_gap }} lux gap)!
-                
+
                 Current settings:
                 • Dark: {{ dark_threshold }} lux
                 • Bright: {{ bright_threshold }} lux
-                
+
                 This may cause rapid on/off cycling. Recommended minimum gap: 10 lux
-                
+
                 Suggested values:
                 • Dark: {{ dark_threshold }} lux
                 • Bright: {{ [dark_threshold + 20, 50] | max }} lux
-              notification_id: "{{ room_name }}_threshold_warning"
+              notification_id: "{{ sanitized_room_name }}_threshold_warning"
       - conditions:
           - condition: template
             value_template: "{{ threshold_gap_warning and not threshold_gap_critical and is_periodic_trigger }}"
@@ -2384,7 +2432,11 @@ action:
                     [{{ room_name | upper }}] Threshold gap warning: {{ threshold_gap }} lux
                     Consider increasing gap to at least 10 lux for stability
   
-  # Validate helper entities exist (ALWAYS show errors)
+  # Validate helper entities exist and are correctly typed
+  # v3.11.0: Also verifies the input_datetime has BOTH date and time (a time-only
+  # helper made set_datetime fail silently on every run). The stop is unconditional
+  # while helpers are missing; the error log/notification are rate-limited to once
+  # per 30 min instead of flooding every 5 seconds.
   - choose:
       - conditions:
           - condition: template
@@ -2399,7 +2451,8 @@ action:
               {% if not states[light_auto_on_helper] %}
                 {% set missing = missing + [light_auto_on_helper] %}
               {% endif %}
-              {% if not states[last_automation_action_helper] %}
+              {% if not states[last_automation_action_helper] or
+                    not (state_attr(last_automation_action_helper, 'has_date') and state_attr(last_automation_action_helper, 'has_time')) %}
                 {% set missing = missing + [last_automation_action_helper] %}
               {% endif %}
               {% if not states[occupancy_state_helper] %}
@@ -2410,40 +2463,43 @@ action:
               {% endif %}
               {{ missing | length > 0 }}
         sequence:
-          # ERROR LOG - ALWAYS SHOWN
-          - service: system_log.write
-            data:
-              level: error
-              message: >-
-                [{{ room_name | upper }}] CRITICAL: Missing required helper entities!
-                {% set missing = [] %}
-                {% if not states[automation_active_helper] %}{% set missing = missing + [automation_active_helper] %}{% endif %}
-                {% if not states[manual_override_helper] %}{% set missing = missing + [manual_override_helper] %}{% endif %}
-                {% if not states[light_auto_on_helper] %}{% set missing = missing + [light_auto_on_helper] %}{% endif %}
-                {% if not states[last_automation_action_helper] %}{% set missing = missing + [last_automation_action_helper] %}{% endif %}
-                {% if not states[occupancy_state_helper] %}{% set missing = missing + [occupancy_state_helper] %}{% endif %}
-                {% if not states[illuminance_history_helper] %}{% set missing = missing + [illuminance_history_helper] %}{% endif %}
-                {% for helper in missing %}
-                - {{ helper }}
-                {% endfor %}
-          - service: persistent_notification.create
-            data:
-              title: "{{ room_name }} Lighting Automation Error"
-              message: >-
-                Missing required helper entities! Please create:
-                {% set missing = [] %}
-                {% if not states[automation_active_helper] %}{% set missing = missing + [automation_active_helper] %}{% endif %}
-                {% if not states[manual_override_helper] %}{% set missing = missing + [manual_override_helper] %}{% endif %}
-                {% if not states[light_auto_on_helper] %}{% set missing = missing + [light_auto_on_helper] %}{% endif %}
-                {% if not states[last_automation_action_helper] %}{% set missing = missing + [last_automation_action_helper] %}{% endif %}
-                {% if not states[occupancy_state_helper] %}{% set missing = missing + [occupancy_state_helper] %}{% endif %}
-                {% if not states[illuminance_history_helper] %}{% set missing = missing + [illuminance_history_helper] %}{% endif %}
-                {% for helper in missing %}
-                - {{ helper }}
-                {% endfor %}
+          - if:
+              - condition: template
+                value_template: "{{ is_periodic_trigger and now().minute % 30 == 0 and now().second < 5 }}"
+            then:
+              - service: system_log.write
+                data:
+                  level: error
+                  message: >-
+                    [{{ room_name | upper }}] CRITICAL: Missing or mistyped helper entities!
+                    {% set missing = [] %}
+                    {% if not states[automation_active_helper] %}{% set missing = missing + [automation_active_helper] %}{% endif %}
+                    {% if not states[manual_override_helper] %}{% set missing = missing + [manual_override_helper] %}{% endif %}
+                    {% if not states[light_auto_on_helper] %}{% set missing = missing + [light_auto_on_helper] %}{% endif %}
+                    {% if not states[last_automation_action_helper] or not (state_attr(last_automation_action_helper, 'has_date') and state_attr(last_automation_action_helper, 'has_time')) %}{% set missing = missing + [last_automation_action_helper ~ ' (must have BOTH date and time)'] %}{% endif %}
+                    {% if not states[occupancy_state_helper] %}{% set missing = missing + [occupancy_state_helper] %}{% endif %}
+                    {% if not states[illuminance_history_helper] %}{% set missing = missing + [illuminance_history_helper] %}{% endif %}
+                    {% for helper in missing %}
+                    - {{ helper }}
+                    {% endfor %}
+              - service: persistent_notification.create
+                data:
+                  title: "{{ room_name }} Lighting Automation Error"
+                  message: >-
+                    Missing or mistyped helper entities! Please create:
+                    {% set missing = [] %}
+                    {% if not states[automation_active_helper] %}{% set missing = missing + [automation_active_helper] %}{% endif %}
+                    {% if not states[manual_override_helper] %}{% set missing = missing + [manual_override_helper] %}{% endif %}
+                    {% if not states[light_auto_on_helper] %}{% set missing = missing + [light_auto_on_helper] %}{% endif %}
+                    {% if not states[last_automation_action_helper] or not (state_attr(last_automation_action_helper, 'has_date') and state_attr(last_automation_action_helper, 'has_time')) %}{% set missing = missing + [last_automation_action_helper ~ ' (must have BOTH date and time)'] %}{% endif %}
+                    {% if not states[occupancy_state_helper] %}{% set missing = missing + [occupancy_state_helper] %}{% endif %}
+                    {% if not states[illuminance_history_helper] %}{% set missing = missing + [illuminance_history_helper] %}{% endif %}
+                    {% for helper in missing %}
+                    - {{ helper }}
+                    {% endfor %}
 
-                Remember: All entity IDs must be lowercase!
-              notification_id: "{{ room_name }}_lighting_helper_error"
+                    Remember: All entity IDs must be lowercase!
+                  notification_id: "{{ sanitized_room_name }}_lighting_helper_error"
           - stop: "Missing required helper entities"
   
   # Validate control configuration (ALWAYS show errors)
@@ -2487,68 +2543,141 @@ action:
                 {% elif control_mode == 'switch_and_lights' %}
                 - Neither switch nor light entities selected
                 {% endif %}
-              notification_id: "{{ room_name }}_lighting_config_error"
+              notification_id: "{{ sanitized_room_name }}_lighting_config_error"
           - stop: "Invalid control configuration"
-  
-  # Clear any previous error notifications
-  - service: persistent_notification.dismiss
-    data:
-      notification_id: "{{ room_name }}_lighting_helper_error"
-    continue_on_error: true
-  - service: persistent_notification.dismiss
-    data:
-      notification_id: "{{ room_name }}_lighting_config_error"
-    continue_on_error: true
-  - service: persistent_notification.dismiss
-    data:
-      notification_id: "{{ room_name }}_tracker_warning"
-    continue_on_error: true
-  
-  # Update illuminance history
+
+  # Clear resolved error notifications (rate-limited to one sweep per 5 min so the
+  # event bus isn't churned with no-op dismiss calls every 5 seconds)
+  - if:
+      - condition: template
+        value_template: "{{ is_periodic_trigger and now().minute % 5 == 0 and now().second < 5 }}"
+    then:
+      - service: persistent_notification.dismiss
+        data:
+          notification_id: "{{ sanitized_room_name }}_lighting_helper_error"
+        continue_on_error: true
+      - service: persistent_notification.dismiss
+        data:
+          notification_id: "{{ sanitized_room_name }}_lighting_config_error"
+        continue_on_error: true
+      - if:
+          - condition: template
+            value_template: "{{ not trackers_missing }}"
+        then:
+          - service: persistent_notification.dismiss
+            data:
+              notification_id: "{{ sanitized_room_name }}_tracker_warning"
+            continue_on_error: true
+      - if:
+          - condition: template
+            value_template: "{{ thresholds_valid }}"
+        then:
+          - service: persistent_notification.dismiss
+            data:
+              notification_id: "{{ sanitized_room_name }}_threshold_inverted"
+            continue_on_error: true
+      - if:
+          - condition: template
+            value_template: "{{ not threshold_gap_critical }}"
+        then:
+          - service: persistent_notification.dismiss
+            data:
+              notification_id: "{{ sanitized_room_name }}_threshold_warning"
+            continue_on_error: true
+
+  # v3.11.0: Sensor health watchdog - warn (hourly) when a configured sensor has been
+  # unavailable for >10 minutes. Previously a dead sensor was silently coerced to a
+  # default and the room just quietly misbehaved.
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ is_illuminance_trigger and enable_illuminance_averaging }}"
+            value_template: >-
+              {% if not is_periodic_trigger or now().minute != 0 or now().second >= 5 %}
+                {{ false }}
+              {% else %}
+                {% set candidates = [presence_pir_sensor, mmwave_sensor, illuminance_sensor] %}
+                {% if has_bed_sensor %}{% set candidates = candidates + [bed_occupied_helper] %}{% endif %}
+                {% set ns = namespace(bad=0) %}
+                {% for e in candidates | unique | list %}
+                  {% if e and states[e] is not none and states(e) in ['unknown', 'unavailable'] and
+                        (current_time - as_timestamp(states[e].last_changed, current_time)) > 600 %}
+                    {% set ns.bad = ns.bad + 1 %}
+                  {% endif %}
+                {% endfor %}
+                {{ ns.bad > 0 }}
+              {% endif %}
+        sequence:
+          - service: persistent_notification.create
+            data:
+              title: "{{ room_name }} - Sensor Problem"
+              message: >-
+                ⚠️ The following sensors have been unavailable for over 10 minutes.
+                The lighting automation is running in a degraded fail-safe mode until they recover:
+                {% set candidates = [presence_pir_sensor, mmwave_sensor, illuminance_sensor] %}
+                {% if has_bed_sensor %}{% set candidates = candidates + [bed_occupied_helper] %}{% endif %}
+                {% for e in candidates | unique | list %}
+                {% if e and states[e] is not none and states(e) in ['unknown', 'unavailable'] and
+                      (current_time - as_timestamp(states[e].last_changed, current_time)) > 600 %}
+                - {{ e }} ({{ states(e) }})
+                {% endif %}
+                {% endfor %}
+              notification_id: "{{ sanitized_room_name }}_sensor_health"
+      - conditions:
+          - condition: template
+            value_template: >-
+              {% if not is_periodic_trigger or now().minute != 0 or now().second >= 5 %}
+                {{ false }}
+              {% else %}
+                {% set candidates = [presence_pir_sensor, mmwave_sensor, illuminance_sensor] %}
+                {% if has_bed_sensor %}{% set candidates = candidates + [bed_occupied_helper] %}{% endif %}
+                {% set ns = namespace(bad=0) %}
+                {% for e in candidates | unique | list %}
+                  {% if e and states[e] is not none and states(e) in ['unknown', 'unavailable'] %}
+                    {% set ns.bad = ns.bad + 1 %}
+                  {% endif %}
+                {% endfor %}
+                {{ ns.bad == 0 }}
+              {% endif %}
+        sequence:
+          - service: persistent_notification.dismiss
+            data:
+              notification_id: "{{ sanitized_room_name }}_sensor_health"
+            continue_on_error: true
+  
+  # Update illuminance history
+  # v3.11.0: Rewritten to match the fixed averaging logic (the old version lost its
+  # accumulator to Jinja for-loop scoping, capping history at ONE value forever).
+  # Spike samples ARE stored so two consecutive real readings converge quickly.
+  # Never writes while the sensor is invalid (no synthetic values in history).
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ is_illuminance_trigger and enable_illuminance_averaging and not illuminance_sensor_invalid }}"
         sequence:
           - service: input_text.set_value
             target:
               entity_id: "{{ illuminance_history_helper }}"
             data:
               value: >-
-                {% if illuminance_history_raw == '[]' or illuminance_history_raw == [] %}
+                {% set history_str = illuminance_history_raw | string %}
+                {% if history_str.startswith('[') and history_str.endswith(']') %}
+                  {% set values = history_str[1:-1].split(',') | select | map('float', 0) | list %}
+                {% else %}
+                  {% set values = [] %}
+                {% endif %}
+                {% if values | length == 0 %}
                   [{{ illuminance_raw | round(2) }}]
                 {% else %}
-                  {% set history_str = illuminance_history_raw | string %}
-                  {% if history_str.startswith('[') and history_str.endswith(']') %}
-                    {% set values = history_str[1:-1].split(',') | select | map('float', 0) | list %}
-                    
-                    {% if values | length > 0 %}
-                      {% set last_avg = (values | sum) / (values | length) %}
-                      {% set change_ratio = illuminance_raw / last_avg if last_avg > 0 else 1 %}
-                      
-                      {% if change_ratio < 0.3 and last_avg > 20 %}
-                        [{{ illuminance_raw | round(2) }}]
-                      {% elif change_ratio > 5 and illuminance_raw > 500 %}
-                        [{{ values[-5:] | map('round', 2) | join(',') }}]
-                      {% else %}
-                        {% set filtered_values = [] %}
-                        {% for val in values[-4:] %}
-                          {% set val_ratio = val / illuminance_raw if illuminance_raw > 0 else 999 %}
-                          {% if 0.2 < val_ratio < 5 or (illuminance_raw < 20 and val < 50) %}
-                            {% set filtered_values = filtered_values + [val | round(2)] %}
-                          {% endif %}
-                        {% endfor %}
-                        
-                        {% set new_values = filtered_values[-4:] + [illuminance_raw | round(2)] %}
-                        [{{ new_values | join(',') }}]
-                      {% endif %}
-                    {% else %}
-                      [{{ illuminance_raw | round(2) }}]
-                    {% endif %}
-                  {% else %}
+                  {% set last_avg = (values | sum) / (values | length) %}
+                  {% set change_ratio = (illuminance_raw / last_avg) if last_avg > 0 else 1 %}
+                  {% if change_ratio < 0.3 and last_avg > ([(dark_threshold | float(30)), 10] | max) %}
                     [{{ illuminance_raw | round(2) }}]
+                  {% else %}
+                    {% set new_values = (values[-4:] + [illuminance_raw | float]) | map('round', 2) | list %}
+                    [{{ new_values | join(',') }}]
                   {% endif %}
                 {% endif %}
+            continue_on_error: true
   
   # SIMPLIFIED v3.8.6: Debug with simple bed state info
   - if:
@@ -2572,7 +2701,8 @@ action:
             │ Prevent Auto-ON: {{ 'YES' if prevent_auto_on else 'NO' }} {% if prevent_auto_on %}({{ 'nobody home' if away_mode_active else 'daytime block' }}){% endif %}
             │ Illuminance: {{ illuminance }}lux (dark<{{ dark_threshold }}, bright≥{{ bright_threshold }})
             │ Override: {{ 'ACTIVE' if manual_override else 'INACTIVE' }}
-            │ Bed: {% if has_bed_sensor %}{{ 'OCCUPIED' if bed_occupied_raw else 'EMPTY' }}{% if is_bed_trigger %} (CHANGED <5s ago){% endif %}{% else %}NO SENSOR{% endif %}
+            │ Bed: {% if has_bed_sensor %}{{ 'INVALID (' ~ states(bed_occupied_helper) ~ ')' if bed_sensor_invalid else ('OCCUPIED' if bed_occupied_raw else 'EMPTY') }} age={{ bed_state_age }}s exit_wait={{ 'YES' if bed_recently_exited else 'no' }} blocks_on={{ 'YES' if bed_blocks_auto_on else 'no' }} sustained={{ 'YES' if bed_occupied_sustained else 'no' }}{% else %}NO SENSOR{% endif %}
+            │ Vacancy: {{ room_vacant_minutes }}min (timeout {{ vacancy_timeout_minutes }}min)
             │ Guest Mode: {{ 'ENABLED' if enable_guest_mode else 'DISABLED' }}
             │ Auto would turn ON: {{ auto_would_turn_on }}
             │ Auto would turn OFF: {{ auto_would_turn_off }}
@@ -2654,21 +2784,17 @@ action:
                     │ Reason: {{ override_clear_reason }}
                     │ Was active for: {{ override_active_minutes }} minutes
                     └────────────────────────────────────────────────────────────────
-          - delay:
-              milliseconds: 100
-          - service: automation.trigger
-            target:
-              entity_id: "{{ this.entity_id }}"
-            data:
-              skip_condition: false
-          - stop: "Override cleared - retriggering automation"
-  
-  # Check for active manual override (with conditional logging)
+          # v3.11.0: No retrigger needed - the old automation.trigger call was always
+          # rejected by this automation's own condition block (dead code). Execution
+          # now simply FALLS THROUGH: the gates below read the helper live, so the
+          # just-cleared override lets normal automatic control run in this same pass.
+
+  # Check for active manual override (live read - the trigger-time variable may be
+  # stale if the override was cleared moments ago in this very run)
   - if:
       - condition: template
         value_template: >-
-          {{ manual_override and not is_primary_trigger and 
-            not (control_mode == 'switch_and_lights' and trigger.entity_id == light_switch) }}
+          {{ is_state(manual_override_helper, 'on') and not is_primary_trigger }}
     then:
       - if:
           - condition: template
@@ -2679,7 +2805,7 @@ action:
               level: info
               message: >-
                 [{{ room_name | upper }}] Manual override active - skipping automation
-                │ Would have: {{ 'turned ON' if (is_dark and someone_present and not bed_occupied and not prevent_auto_on and not lights_on) else 'turned OFF' if (auto_would_turn_off and lights_on) else 'done nothing' }}
+                │ Would have: {{ 'turned ON' if (is_dark and someone_present and not bed_blocks_auto_on and not prevent_auto_on and not lights_on) else 'turned OFF' if (auto_would_turn_off and lights_on) else 'done nothing' }}
       - stop: "Manual override active"
   
   # Main automation logic
@@ -2706,19 +2832,19 @@ action:
                     └────────────────────────────────────────────────────────────────
           
           # Determine if override should be set or cleared
+          # v3.11.0: 100ms delays removed throughout (helper writes are committed when
+          # the service call returns; the delays were only mode:restart kill windows).
           - choose:
               # Set override - user action conflicts with automation
               - conditions:
                   - condition: template
                     value_template: >-
-                      {{ (user_turned_on and (not auto_would_turn_on or prevent_auto_on)) or 
+                      {{ (user_turned_on and (not auto_would_turn_on or prevent_auto_on)) or
                          (user_turned_off and auto_would_turn_on and not prevent_auto_on) }}
                 sequence:
                   - service: input_boolean.turn_on
                     target:
                       entity_id: "{{ manual_override_helper }}"
-                  - delay:
-                      milliseconds: 100
                   - if:
                       - condition: template
                         value_template: "{{ enable_debug_logs }}"
@@ -2729,7 +2855,7 @@ action:
                           message: >-
                             [{{ room_name | upper }}] Manual override SET
                             │ Reason: Conflicts with automation
-              
+
               # Clear override - user action matches automation intent
               - conditions:
                   - condition: template
@@ -2737,17 +2863,15 @@ action:
                       {# Clear when user turns ON and automation wants ON (not blocked by daytime) #}
                       {% set user_on_matches = user_turned_on and auto_would_turn_on and not prevent_auto_on %}
 
-                      {# Clear when user turns OFF and automation wants OFF #}
-                      {% set user_off_matches = user_turned_off and auto_would_turn_off %}
+                      {# v3.11.0: Compare against PRE-CHANGE intent - lights_on is already
+                         false after the user's OFF action, so auto_would_turn_off (which
+                         requires lights_on) could never match here #}
+                      {% set user_off_matches = user_turned_off and auto_would_turn_off_prechange %}
 
                       {# Clear when user turns OFF during daytime when automation would also want OFF #}
                       {% set daytime_off_matches = user_turned_off and prevent_auto_on and not auto_would_turn_on %}
 
-                      {# FIXED v3.9.0: Allow override clear when user manually turns off lights while bed occupied #}
-                      {# This matches automation intent (bed occupied should turn off lights) #}
-                      {% set bed_off_matches = user_turned_off and has_bed_sensor and bed_occupied and turn_off_when_bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}
-
-                      {{ user_on_matches or user_off_matches or daytime_off_matches or bed_off_matches }}
+                      {{ user_on_matches or user_off_matches or daytime_off_matches }}
                 sequence:
                   - service: input_boolean.turn_off
                     target:
@@ -2760,17 +2884,18 @@ action:
                         data:
                           level: info
                           message: "[{{ room_name | upper }}] Override cleared - action matches automation"
-              
-              # Clear override - user turned off in bright room
+
+              # Clear override - user turned off in genuinely bright DAYLIGHT
+              # v3.11.0: Requires daytime. At night the "bright" reading is the room's
+              # own lights still lit at the instant of switch-off - clearing the
+              # override here made the automation re-light the room seconds later.
               - conditions:
                   - condition: template
-                    value_template: "{{ user_turned_off and is_bright and someone_present }}"
+                    value_template: "{{ user_turned_off and is_bright and someone_present and is_daytime_final }}"
                 sequence:
                   - service: input_boolean.turn_off
                     target:
                       entity_id: "{{ manual_override_helper }}"
-                  - delay:
-                      milliseconds: 100
                   - if:
                       - condition: template
                         value_template: "{{ enable_debug_logs }}"
@@ -2778,8 +2903,8 @@ action:
                       - service: system_log.write
                         data:
                           level: info
-                          message: "[{{ room_name | upper }}] Override cleared - lights off in bright room"
-              
+                          message: "[{{ room_name | upper }}] Override cleared - lights off in bright daylight"
+
               # Default case - set override for other manual changes
               - conditions:
                   - condition: template
@@ -2794,46 +2919,43 @@ action:
                           {% endif %}
                         {% endif %}
                       {% endif %}
-                      
-                      {% set bed_auto_off = false %}
-                      {% if user_turned_off and turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}
-                        {% set bed_auto_off = true %}
-                      {% endif %}
-                      
+
+                      {# bed_occupied is already false in guest-ignore mode #}
+                      {% set bed_auto_off = user_turned_off and turn_off_when_bed_occupied and bed_occupied %}
+
                       {% set threshold_gap = bright_threshold - dark_threshold %}
-                      
+
+                      {# v3.11.0: A manual OFF at night sets the override even if the
+                         room still reads "bright" from its own just-extinguished lights #}
                       {% set wants_dark_while_present = false %}
                       {% if not bed_auto_off %}
-                        {% set wants_dark_while_present = user_turned_off and someone_present and not is_bright %}
+                        {% set wants_dark_while_present = user_turned_off and someone_present and (not is_bright or not is_daytime_final) %}
                       {% endif %}
-                      
+
                       {% set wants_light_when_not_dark = user_turned_on and not is_dark and someone_present %}
-                      
+
                       {% set fighting_automation = false %}
                       {% if not bed_auto_off %}
                         {% set fighting_automation = user_turned_off and light_was_auto_on and someone_present %}
                       {% endif %}
-                      
+
                       {% set extreme_override = false %}
                       {% if not bed_auto_off %}
                         {% set extreme_override = user_turned_off and is_extremely_dark and someone_present %}
                       {% endif %}
-                      
+
                       {% set narrow_threshold = threshold_gap <= 10 %}
                       {% set middle_range_override = false %}
                       {% if not bed_auto_off %}
-                        {% set middle_range_override = narrow_threshold and in_middle_range and someone_present %}
+                        {% set middle_range_override = narrow_threshold and in_middle_range and someone_present and (user_turned_on or user_turned_off) %}
                       {% endif %}
-                      
-                      {% set bed_override = false %}
-                      {% if has_bed_sensor and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}
-                        {% set bed_override = user_turned_on %}
-                      {% endif %}
-                      
+
+                      {% set bed_override = has_bed_sensor and bed_occupied and user_turned_on %}
+
                       {{ not auto_on_recent and not bed_auto_off and (
-                        wants_dark_while_present or 
-                        wants_light_when_not_dark or 
-                        fighting_automation or 
+                        wants_dark_while_present or
+                        wants_light_when_not_dark or
+                        fighting_automation or
                         extreme_override or
                         middle_range_override or
                         bed_override
@@ -2842,8 +2964,6 @@ action:
                   - service: input_boolean.turn_on
                     target:
                       entity_id: "{{ manual_override_helper }}"
-                  - delay:
-                      milliseconds: 100
                   - if:
                       - condition: template
                         value_template: "{{ enable_debug_logs }}"
@@ -2854,25 +2974,24 @@ action:
                           message: >-
                             [{{ room_name | upper }}] Manual override SET
                             │ Reason: User preference
-          
+
           # Clear auto-on flag
           - service: input_boolean.turn_off
             target:
               entity_id: "{{ light_auto_on_helper }}"
-          
-          # Stop if override was set
-          - condition: template
-            value_template: "{{ not manual_override }}"
-      
-      # Automatic light control (with conditional logging)
-      - conditions:
-          - condition: template
-            value_template: "{{ not manual_override and not primary_recently_changed }}"
-        sequence:
-          # Double-check override state
+
+          # Stop if override was set (v3.11.0: live read - the trigger-time variable
+          # cannot see the helper this run just wrote)
           - condition: template
             value_template: "{{ is_state(manual_override_helper, 'off') }}"
-          
+      
+      # Automatic light control (with conditional logging)
+      # v3.11.0: Live-read gate - the trigger-time manual_override variable is stale
+      # when the override was legitimately cleared earlier in this same run.
+      - conditions:
+          - condition: template
+            value_template: "{{ is_state(manual_override_helper, 'off') and not primary_recently_changed }}"
+        sequence:
           - if:
               - condition: template
                 value_template: "{{ enable_debug_logs }}"
@@ -2887,52 +3006,60 @@ action:
                     │ Would turn ON: {{ auto_would_turn_on }}
                     │ Would turn OFF: {{ auto_would_turn_off }}
                     │ Prevent auto-ON: {{ prevent_auto_on }}
-                    │ Bed occupied: {{ bed_occupied }}
+                    │ Bed blocks auto-ON: {{ bed_blocks_auto_on }}
                     │ Should: {{ 'turn ON' if (auto_would_turn_on and not lights_on and not prevent_auto_on) else 'turn OFF' if (auto_would_turn_off and lights_on) else 'prevent auto-ON' if (prevent_auto_on and is_dark and someone_present and not lights_on) else 'do nothing' }}
-          
+
           - choose:
-              # Turn lights ON (with simple bed delay)
+              # Turn lights ON
+              # v3.11.0: Safety check runs FIRST (before any bookkeeping) so an aborted
+              # attempt leaves no stale automation_active flag or false action timestamp.
+              # Bed exit delay is enforced inside bed_blocks_auto_on.
               - conditions:
                   - condition: template
                     value_template: "{{ auto_would_turn_on and not lights_on and not prevent_auto_on }}"
                 sequence:
-                  # If this is triggered by getting out of bed, wait the exit delay
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ is_bed_trigger and not bed_occupied_raw and has_bed_sensor }}"
-                        sequence:
-                          # Re-check conditions (bed exit delay removed in v3.8.8)
-                          - condition: template
-                            value_template: "{{ is_dark and someone_present and states(bed_occupied_helper) == 'off' and not manual_override }}"
-                  
-                  # Set automation active
-                  - service: input_boolean.turn_on
-                    target:
-                      entity_id: "{{ automation_active_helper }}"
-                  
-                  # Record action time
+                  # Final safety check (live helper reads)
+                  - condition: template
+                    value_template: >-
+                      {{ is_dark and someone_present and not bed_blocks_auto_on and
+                         not lights_on and is_state(manual_override_helper, 'off') and
+                         not prevent_auto_on }}
+
+                  # Bookkeeping BEFORE the light command so the resulting state change
+                  # is always attributable to the automation
                   - service: input_datetime.set_datetime
                     target:
                       entity_id: "{{ last_automation_action_helper }}"
                     data:
                       datetime: "{{ now() }}"
-                  
-                  # Final safety check
-                  - condition: template
-                    value_template: >-
-                      {{ is_dark and someone_present and not bed_occupied and 
-                         not lights_on and is_state(manual_override_helper, 'off') and
-                         not prevent_auto_on }}
-                  
+                    continue_on_error: true
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ automation_active_helper }}"
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ light_auto_on_helper }}"
+
                   # Turn on lights based on control mode
                   - choose:
-                      # Smart lights only or switch+lights mode
+                      # Smart lights (lights_only, or switch_and_lights with bulbs configured)
                       - conditions:
                           - condition: template
                             value_template: "{{ control_mode != 'switch_only' and has_lights }}"
                         sequence:
+                          # In switch_and_lights mode make sure the wall switch is
+                          # powering the bulbs first (idempotent if already on)
+                          - if:
+                              - condition: template
+                                value_template: "{{ control_mode == 'switch_and_lights' and has_switch and states(light_switch) == 'off' }}"
+                            then:
+                              - service: homeassistant.turn_on
+                                target:
+                                  entity_id: "{{ light_switch }}"
+                                continue_on_error: true
                           # Turn on smart lights with features
+                          # v3.11.0: 'kelvin' was removed from light.turn_on in HA 2026.3 -
+                          # 'color_temp_kelvin' is the supported parameter (since 2022.11)
                           - service: light.turn_on
                             target:
                               entity_id: "{{ light_entities }}"
@@ -2942,17 +3069,17 @@ action:
                                 {% set data = dict(data, **{'brightness_pct': adaptive_brightness}) %}
                               {% endif %}
                               {% if enable_color_temperature and light_supports_color_temp and adaptive_color_temp > 0 %}
-                                {% set data = dict(data, **{'kelvin': adaptive_color_temp}) %}
+                                {% set data = dict(data, **{'color_temp_kelvin': adaptive_color_temp}) %}
                               {% endif %}
                               {% if effective_fade_on_time > 0 %}
                                 {% set data = dict(data, **{'transition': effective_fade_on_time}) %}
                               {% endif %}
                               {{ data }}
-                      
-                      # Switch only mode
+
+                      # Switch fallback (switch_only, or switch_and_lights without bulbs)
                       - conditions:
                           - condition: template
-                            value_template: "{{ control_mode == 'switch_only' and has_switch }}"
+                            value_template: "{{ has_switch }}"
                         sequence:
                           - choose:
                               - conditions:
@@ -2968,7 +3095,7 @@ action:
                                         {% set data = dict(data, **{'brightness_pct': adaptive_brightness}) %}
                                       {% endif %}
                                       {% if enable_color_temperature and light_supports_color_temp and adaptive_color_temp > 0 %}
-                                        {% set data = dict(data, **{'kelvin': adaptive_color_temp}) %}
+                                        {% set data = dict(data, **{'color_temp_kelvin': adaptive_color_temp}) %}
                                       {% endif %}
                                       {% if effective_fade_on_time > 0 %}
                                         {% set data = dict(data, **{'transition': effective_fade_on_time}) %}
@@ -2978,19 +3105,14 @@ action:
                               - service: homeassistant.turn_on
                                 target:
                                   entity_id: "{{ light_switch }}"
-                  
-                  # Set auto-on flag
-                  - service: input_boolean.turn_on
-                    target:
-                      entity_id: "{{ light_auto_on_helper }}"
-                  
-                  # Clear automation active with improved delay
-                  - delay:
-                      seconds: "{{ [effective_fade_on_time, 0.5] | max }}"
+
+                  # Release the active flag immediately - self-echo suppression is now
+                  # handled by the context-based condition filter, not by delays that
+                  # mode:restart kills anyway
                   - service: input_boolean.turn_off
                     target:
                       entity_id: "{{ automation_active_helper }}"
-                  
+
                   - if:
                       - condition: template
                         value_template: "{{ enable_debug_logs }}"
@@ -3004,65 +3126,54 @@ action:
                             │ Brightness: {{ adaptive_brightness }}%
                             │ Color Temp: {{ adaptive_color_temp }}K
                             │ Guest Mode: {{ 'YES' if enable_guest_mode else 'NO' }}
-                            │ Blinds: {{ 'COMING SOON' if enable_blinds_automation else 'Disabled' }}
                             └────────────────────────────────────────────────────────────────
               
-              # Turn lights OFF (with simple bed delay)
+              # Turn lights OFF
+              # v3.11.0: Safety check FIRST (no side effects on aborted attempts);
+              # includes the daytime disjunct (the v3.10.1 "turn off at sunrise"
+              # feature was silently blocked by its own safety check while the room
+              # was occupied) and the vacancy timeout term. Bed entry delay is
+              # enforced via bed_occupied_sustained on every evaluation path.
               - conditions:
                   - condition: template
                     value_template: "{{ auto_would_turn_off and lights_on }}"
                 sequence:
-                  # Handle bed-triggered OFF with delay
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: >-
-                              {{ has_bed_sensor and
-                                 turn_off_when_bed_occupied and
-                                 is_bed_trigger and
-                                 states(bed_occupied_helper) == 'on' and
-                                 not (enable_guest_mode and guest_ignore_bed) }}
-                        sequence:
-                          # Verify ALL conditions still valid (bed entry delay removed in v3.8.8)
-                          - condition: template
-                            value_template: >-
-                              {{ states(bed_occupied_helper) == 'on' and
-                                 lights_on and
-                                 not manual_override and
-                                 turn_off_when_bed_occupied }}
-                          
-                          # Log if debug enabled
-                          - if:
-                              - condition: template
-                                value_template: "{{ enable_debug_logs }}"
-                            then:
-                              - service: system_log.write
-                                data:
-                                  level: warning
-                                  message: "[{{ room_name | upper }}] Turning off lights - bed occupied"
-                  
-                  # Set automation active
-                  - service: input_boolean.turn_on
-                    target:
-                      entity_id: "{{ automation_active_helper }}"
-                  
-                  # Record action time
+                  # Final safety check (mirrors auto_would_turn_off exactly, so an
+                  # entered branch can never abort with stale side effects)
+                  - condition: template
+                    value_template: >-
+                      {% set vacant_ok = not someone_present and room_vacant_minutes >= vacancy_timeout_minutes %}
+                      {% set bed_ok = has_bed_sensor and turn_off_when_bed_occupied and bed_occupied_sustained %}
+                      {% set daytime_ok = no_daytime_lights_active %}
+                      {{ (vacant_ok or bed_ok or daytime_ok) and lights_on and
+                         is_state(manual_override_helper, 'off') }}
+
+                  - if:
+                      - condition: template
+                        value_template: "{{ enable_debug_logs and bed_occupied_sustained and turn_off_when_bed_occupied }}"
+                    then:
+                      - service: system_log.write
+                        data:
+                          level: warning
+                          message: "[{{ room_name | upper }}] Turning off lights - bed occupied ({{ bed_state_age }}s, entry delay {{ bed_entry_delay_seconds }}s)"
+
+                  # Bookkeeping BEFORE the light command
                   - service: input_datetime.set_datetime
                     target:
                       entity_id: "{{ last_automation_action_helper }}"
                     data:
                       datetime: "{{ now() }}"
-                  
-                  # Final safety check
-                  - condition: template
-                    value_template: >-
-                      {% set vacant_trigger = not someone_present %}
-                      {% set bed_trigger = has_bed_sensor and turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}
-                      {{ (vacant_trigger or bed_trigger) and lights_on }}
-                  
+                    continue_on_error: true
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ automation_active_helper }}"
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: "{{ light_auto_on_helper }}"
+
                   # Turn off lights based on control mode
                   - choose:
-                      # Smart lights only or switch+lights mode - turn off lights directly
+                      # Smart lights (lights_only, or switch_and_lights with bulbs configured)
                       - conditions:
                           - condition: template
                             value_template: "{{ control_mode != 'switch_only' and has_lights }}"
@@ -3076,11 +3187,11 @@ action:
                                 {% set data = dict(data, **{'transition': effective_fade_off_time}) %}
                               {% endif %}
                               {{ data }}
-                      
-                      # Switch only mode - turn off switch
+
+                      # Switch fallback (switch_only, or switch_and_lights without bulbs)
                       - conditions:
                           - condition: template
-                            value_template: "{{ control_mode == 'switch_only' and has_switch }}"
+                            value_template: "{{ has_switch }}"
                         sequence:
                           - choose:
                               - conditions:
@@ -3096,42 +3207,12 @@ action:
                               - service: homeassistant.turn_off
                                 target:
                                   entity_id: "{{ light_switch }}"
-                  
-                  # Clear auto-on flag
-                  - service: input_boolean.turn_off
-                    target:
-                      entity_id: "{{ light_auto_on_helper }}"
-                  
-                  # Clear automation active with improved delay
-                  - delay:
-                      seconds: "{{ [effective_fade_off_time, 0.5] | max }}"
+
+                  # Release the active flag immediately (see ON path note)
                   - service: input_boolean.turn_off
                     target:
                       entity_id: "{{ automation_active_helper }}"
-                  
-                  # Clear manual override if automation turned off lights and it matches desired state
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: >-
-                              {% set automation_off_matches_intent = auto_would_turn_off or prevent_auto_on %}
-                              {{ manual_override and automation_off_matches_intent }}
-                        sequence:
-                          - service: input_boolean.turn_off
-                            target:
-                              entity_id: "{{ manual_override_helper }}"
-                          - if:
-                              - condition: template
-                                value_template: "{{ enable_debug_logs }}"
-                            then:
-                              - service: system_log.write
-                                data:
-                                  level: info
-                                  message: >-
-                                    [{{ room_name | upper }}] Manual override cleared
-                                    │ Reason: Automation turned off lights matching desired state
-                                    │ Daytime control active: {{ 'YES' if prevent_auto_on else 'NO' }}
-                  
+
                   - if:
                       - condition: template
                         value_template: "{{ enable_debug_logs }}"
@@ -3142,15 +3223,14 @@ action:
                           message: >-
                             ┌─ {{ room_name | upper }} LIGHTS TURNED OFF ──────────────────────────────────────
                             │ Control Mode: {{ control_mode }}
-                            │ Reason: {% if turn_off_when_bed_occupied and bed_occupied and not (enable_guest_mode and guest_ignore_bed) %}Bed occupied{% else %}Room vacant{% endif %}
+                            │ Reason: {% if turn_off_when_bed_occupied and bed_occupied_sustained %}Bed occupied{% elif no_daytime_lights_active and someone_present %}Daytime energy saving{% else %}Room vacant{% endif %}
                             │ Fade Off: {{ effective_fade_off_time }}s
-                            │ Blinds: {{ 'COMING SOON' if enable_blinds_automation else 'Disabled' }}
                             └────────────────────────────────────────────────────────────────
-              
+
               # Log when prevented from turning on (but not when lights already on) - with conditional logging
               - conditions:
                   - condition: template
-                    value_template: "{{ prevent_auto_on and is_dark and someone_present and not bed_occupied and not lights_on }}"
+                    value_template: "{{ prevent_auto_on and is_dark and someone_present and not bed_blocks_auto_on and not lights_on }}"
                 sequence:
                   - if:
                       - condition: template
@@ -3180,7 +3260,7 @@ action:
             ├─ Light Level: {{ illuminance }}lux ({{ 'Dark' if is_dark else 'Bright' if is_bright else 'Medium' }})
             ├─ Daytime Prevention: {{ 'ACTIVE' if prevent_auto_on else 'INACTIVE' }}
             ├─ Override: {{ 'ACTIVE' if manual_override else 'INACTIVE' }}
-            ├─ Bed Status: {% if has_bed_sensor %}{{ 'OCCUPIED' if bed_occupied else 'EMPTY' }}{% else %}N/A{% endif %}
+            ├─ Bed Status: {% if has_bed_sensor %}{{ 'INVALID' if bed_sensor_invalid else ('OCCUPIED' if bed_occupied_raw else 'EMPTY') }} (blocks auto-ON: {{ bed_blocks_auto_on }}){% else %}N/A{% endif %}
             ├─ Action Taken: {% if lights_on != (expand(light_entities) | selectattr('state', 'eq', 'on') | list | count > 0 if has_lights else is_state(light_switch, 'on') if has_switch else false) %}Lights {{ 'turned ON' if (expand(light_entities) | selectattr('state', 'eq', 'on') | list | count > 0 if has_lights else is_state(light_switch, 'on') if has_switch else false) else 'turned OFF' }}{% elif prevent_auto_on %}Auto-ON prevented{% else %}No change{% endif %}
             ├─ Execution Time: {{ ((now().timestamp() - action_start_time) * 1000) | round(1) }}ms
             └─ Performance: {% if ((now().timestamp() - start_time) * 1000) < 100 %}⚡ Excellent{% elif ((now().timestamp() - start_time) * 1000) < 500 %}✔ Good{% else %}⚠️ Slow{% endif %}
