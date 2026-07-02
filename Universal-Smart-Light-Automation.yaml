@@ -1876,20 +1876,6 @@ variables:
   primary_recently_changed: "{{ primary_changed_seconds_ago < 2 }}"
   override_recently_set: "{{ manual_override and (current_time - override_changed_time) < 5 }}"
   
-  # Enhanced manual change detection
-  # v3.11.0: Window widened from <1s to <3s - the input_datetime helper stores whole
-  # seconds, so the old sub-second window misclassified the automation's own switch
-  # changes as manual ~10-30% of the time. (Primary defense is now the context-based
-  # service-call filter in the condition block; this is the belt to that suspender.)
-  is_manual_change: >-
-    {% if trigger.platform != 'state' or not is_primary_trigger %}
-      {{ false }}
-    {% elif automation_active and not automation_active_stale and time_since_last_automation < 3 %}
-      {{ false }}
-    {% else %}
-      {{ true }}
-    {% endif %}
-
   # Trigger analysis
   # v3.11.0: In switch_and_lights mode the physical wall switch is also a primary
   # control - flips of it now participate in manual override logic.
@@ -1915,6 +1901,21 @@ variables:
 
   user_turned_on: "{{ is_primary_trigger and trigger.to_state is defined and trigger.from_state is defined and trigger.to_state.state == 'on' and trigger.from_state.state == 'off' }}"
   user_turned_off: "{{ is_primary_trigger and trigger.to_state is defined and trigger.from_state is defined and trigger.to_state.state == 'off' and trigger.from_state.state == 'on' }}"
+
+  # Enhanced manual change detection (defined after is_primary_trigger - variables
+  # render in order and forward references are undefined)
+  # v3.11.0: Window widened from <1s to <3s - the input_datetime helper stores whole
+  # seconds, so the old sub-second window misclassified the automation's own switch
+  # changes as manual ~10-30% of the time. (Primary defense is now the context-based
+  # service-call filter in the condition block; this is the belt to that suspender.)
+  is_manual_change: >-
+    {% if trigger.platform != 'state' or not is_primary_trigger %}
+      {{ false }}
+    {% elif automation_active and not automation_active_stale and time_since_last_automation < 3 %}
+      {{ false }}
+    {% else %}
+      {{ true }}
+    {% endif %}
 
   # Guest mode adjustments
   effective_vacancy_multiplier: >-
