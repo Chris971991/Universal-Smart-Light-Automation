@@ -1,7 +1,7 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - v3.11.0
+  name: Universal Smart Presence Lighting Control - v3.11.1
   description: |
-    **Universal Smart Presence Lighting Control v3.11.0**
+    **Universal Smart Presence Lighting Control v3.11.1**
 
     💡 The most comprehensive lighting automation for Home Assistant with intelligent presence detection, adaptive brightness, and circadian color control.
 
@@ -50,17 +50,11 @@ blueprint:
 
     ---
 
-    ## 🆕 Latest Update - v3.11.0
+    ## 🆕 Latest Update - v3.11.1
 
-    **🛏️ Bed Sensor Overhaul:**
-    - ✅ Bed entry/exit delays are BACK - no more lights blasting on when you roll over
-    - ✅ Bed sensor dropouts (unavailable) no longer turn lights on over a sleeping occupant
-    - ✅ Instant bed reaction via a dedicated bed sensor trigger
-
-    **🐛 Major Bug Fixes (25+):**
-    - ✅ Vacancy timeout now actually works - lights no longer turn off the instant the sensor clears
-    - ✅ Manual light-off at night is no longer undone by the automation
-    - ✅ Fixed HA 2026.3 color temperature compatibility, illuminance averaging, and much more
+    **🐛 Bug Fixes:**
+    - ✅ Manually turning lights on in an already-vacant room is no longer instantly reverted ("Vacancy Can Clear" now waits for the override to age, not just the room)
+    - ✅ Includes the full v3.11.0 overhaul: bed entry/exit delays, bed dropout fail-safes, working vacancy timeout, 40+ fixes
 
     📖 **Full changelog:** https://github.com/Chris971991/universal-smart-light-automation/releases
 
@@ -1269,7 +1263,7 @@ variables:
   start_time: "{{ now().timestamp() }}"
 
   # Version checking
-  blueprint_version: "3.11.0"  # UPDATE THIS WITH EACH RELEASE
+  blueprint_version: "3.11.1"  # UPDATE THIS WITH EACH RELEASE
   enable_update_check: !input enable_update_check
   update_sensor: "sensor.universal_lighting_updates"
   
@@ -1992,8 +1986,14 @@ variables:
       {{ false }}
     {% endif %}
 
+  # v3.11.1: The override must also be OLDER than the clear window - previously an
+  # override set while the room was already long-vacant (e.g. turning lights on
+  # remotely from another room) was cleared within seconds of being set, and the
+  # vacancy turn-off immediately reverted the user's action.
   vacancy_clear_triggered: >-
-    {{ manual_override and override_behavior == 'vacancy_clear' and room_vacant_minutes >= effective_vacancy_clear_minutes }}
+    {{ manual_override and override_behavior == 'vacancy_clear' and
+       room_vacant_minutes >= effective_vacancy_clear_minutes and
+       override_active_minutes >= effective_vacancy_clear_minutes }}
 
   override_should_clear: "{{ override_timeout_exceeded or vacancy_clear_triggered }}"
 
