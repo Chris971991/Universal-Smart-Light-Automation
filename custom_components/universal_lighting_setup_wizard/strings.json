@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Room Setup",
-        "description": "Configure your room's basic lighting setup.\n\n**Room Name Rules:**\n• Use lowercase letters only\n• Replace spaces with underscores\n• Example: bedroom, living_room, home_office",
+        "description": "Configure your room's basic lighting setup.\n\n**Room Name:** any name works (e.g. Bedroom, Living Room) - it is automatically converted to a valid helper prefix.",
         "data": {
           "room_name": "Room Name",
           "control_mode": "Control Mode",
@@ -11,7 +11,7 @@
           "light_entities": "Smart Light Entities (Optional)"
         },
         "data_description": {
-          "room_name": "Unique name for this automation (lowercase, underscores for spaces)",
+          "room_name": "Unique name for this room (spaces and capitals are fine)",
           "control_mode": "How your lighting is wired",
           "light_switch": "Wall switch entity (leave blank if using lights only)",
           "light_entities": "Smart bulb entities (leave blank if using switch only)"
@@ -81,7 +81,9 @@
           "turn_off_when_bed_occupied": "Auto-Off When Getting Into Bed",
           "enable_guest_mode": "Enable Guest Mode",
           "enable_debug_logs": "Enable Debug Logging",
-          "enable_update_check": "Check for Blueprint Updates"
+          "enable_update_check": "Check for Blueprint Updates",
+          "bed_exit_delay_seconds": "Bed Exit Delay (seconds)",
+          "bed_entry_delay_seconds": "Bed Entry Delay (seconds)"
         },
         "data_description": {
           "enable_daytime_control": "Save energy during daytime hours",
@@ -92,7 +94,9 @@
           "turn_off_when_bed_occupied": "Lights off when getting into bed",
           "enable_guest_mode": "Special behavior when guests visit",
           "enable_debug_logs": "Create detailed logs for troubleshooting",
-          "enable_update_check": "Get notified of blueprint updates"
+          "enable_update_check": "Get notified of blueprint updates",
+          "bed_exit_delay_seconds": "Bed must read empty this long before lights may turn on (filters roll-overs)",
+          "bed_entry_delay_seconds": "Bed must read occupied this long before auto-off fires (filters brief sits)"
         }
       },
       "adaptive_lighting": {
@@ -131,9 +135,22 @@
       "room_name_too_short": "Room name must be at least 2 characters long.",
       "helpers_exist": "Helper entities already exist for this room name. Choose a different name or delete existing helpers first.",
       "bright_must_exceed_dark": "Bright threshold must be at least 10 lux higher than dark threshold.",
-      "setup_failed": "Failed to create setup. Check logs for details."
+      "setup_failed": "Failed to create setup. Check logs for details.",
+      "switch_required": "Smart Switch Only mode needs a Light Switch Entity.",
+      "lights_required": "Smart Lights Only mode needs at least one Smart Light Entity.",
+      "entities_required": "Select a light switch and/or smart light entities for this mode.",
+      "bed_helper_required": "Bed sensor is enabled but no Bed Occupancy Sensor was selected.",
+      "trackers_required": "\"Block When Away\" needs at least one device tracker.",
+      "extreme_must_be_below_dark": "Extremely Dark threshold must be below the Dark threshold.",
+      "automation_exists": "An automation for this room already exists. Choose a different name or delete it first."
     },
     "abort": {
+      "already_configured": "This room is already set up by the wizard.",
+      "blueprint_missing": "The Universal Smart Lighting blueprint is not imported yet. Import it first (Settings → Automations → Blueprints → Import), then run the wizard again.",
+      "packages_manual": "Your configuration.yaml has a custom 'homeassistant:' section the wizard won't modify. Add this line under it manually, then retry:\n  packages: !include_dir_named packages",
+      "packages_failed": "Could not enable packages in configuration.yaml. Check the logs; a .wizard-backup copy of any modified file is kept next to it.",
+      "helpers_failed": "Helper entities could not be created or verified. Check the logs and retry - the wizard safely reuses anything it already created.",
+      "automation_failed": "Could not write the automation to automations.yaml. Check the logs; a .wizard-backup copy is kept next to it.",
       "setup_failed": "Setup failed. Please check the logs and try again."
     }
   }
