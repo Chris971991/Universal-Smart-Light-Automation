@@ -1,7 +1,7 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - v3.11.1
+  name: Universal Smart Presence Lighting Control - v3.12.0
   description: |
-    **Universal Smart Presence Lighting Control v3.11.1**
+    **Universal Smart Presence Lighting Control v3.12.0**
 
     💡 The most comprehensive lighting automation for Home Assistant with intelligent presence detection, adaptive brightness, and circadian color control.
 
@@ -50,11 +50,12 @@ blueprint:
 
     ---
 
-    ## 🆕 Latest Update - v3.11.1
+    ## 🆕 Latest Update - v3.12.0
 
-    **🐛 Bug Fixes:**
-    - ✅ Manually turning lights on in an already-vacant room is no longer instantly reverted ("Vacancy Can Clear" now waits for the override to age, not just the room)
-    - ✅ Includes the full v3.11.0 overhaul: bed entry/exit delays, bed dropout fail-safes, working vacancy timeout, 40+ fixes
+    **✨ New Features:**
+    - ✅ Optional **Outdoor Darkness Sensor** — drive "daytime" from a real outdoor light sensor (weather station) instead of sunrise/sunset clock times
+    - ✅ Storm-dark afternoons enable lights early; bright evenings hold them off; gloomy mornings keep them on
+    - ✅ Automatic fail-safe: if the sensor is unavailable, the sunrise/sunset offsets take over seamlessly
 
     📖 **Full changelog:** https://github.com/Chris971991/universal-smart-light-automation/releases
 
@@ -679,7 +680,40 @@ blueprint:
               unit_of_measurement: min
               mode: slider
               step: 5
-    
+
+        outdoor_darkness_sensor:
+          name: Outdoor Darkness Sensor (Weather Station)
+          description: >
+            **OPTIONAL - Use real daylight instead of clock times!** Connect a binary sensor
+            that is ON when it's dark outside (e.g. a Threshold helper on your weather
+            station's solar lux sensor).
+
+
+            **What it does:**
+
+            • **Replaces the sunrise/sunset window** - "daytime" becomes what the sky actually looks like
+
+            • **Storm-dark afternoon?** Lights are allowed early
+
+            • **Bright evening?** Lights hold off until it's genuinely dim
+
+
+            **Recommended setup:** create a Threshold helper on your outdoor lux sensor
+            (e.g. lower 3750, hysteresis 750 = dark below 3000 lx, bright again above 4500 lx).
+
+
+            **Fail-safe:** if this sensor is unavailable or unknown, the automation silently
+            falls back to the sunrise/sunset offsets above - a dead sensor can never strand
+            your lights.
+
+
+            💡 **Don't have an outdoor sensor?** Skip this - sunrise/sunset offsets keep working exactly as before.
+          default: []
+          selector:
+            entity:
+              domain:
+                - binary_sensor
+
     # Section 6: Bedroom Features
     bedroom_features:
       name: "Bedroom Features"
@@ -1329,6 +1363,9 @@ variables:
   presence_trackers: !input presence_trackers
   sunrise_offset_minutes: !input sunrise_offset_minutes
   sunset_offset_minutes: !input sunset_offset_minutes
+  outdoor_darkness_sensor_raw: !input outdoor_darkness_sensor
+  outdoor_darkness_sensor: >-
+    {% if outdoor_darkness_sensor_raw is string %}{{ outdoor_darkness_sensor_raw }}{% elif outdoor_darkness_sensor_raw %}{{ outdoor_darkness_sensor_raw[0] }}{% endif %}
   bed_occupied_helper_raw: !input bed_occupied_helper
   bed_occupied_helper: >-
     {% if bed_occupied_helper_raw is string %}{{ bed_occupied_helper_raw }}{% elif bed_occupied_helper_raw %}{{ bed_occupied_helper_raw[0] }}{% endif %}
@@ -1472,8 +1509,26 @@ variables:
       {{ is_sun_up }}
     {% endif %}
 
+  # v3.12.0: OPTIONAL outdoor darkness sensor (weather station) overrides the
+  # clock window - "daytime" becomes what the sky actually looks like. The
+  # sensor is ON when dark outside. Fail-safe: any state other than on/off
+  # (unavailable, unknown, not configured) falls back to the sun-times window,
+  # so a dead roof sensor can never strand the room in the wrong mode.
+  outdoor_darkness_ok: >-
+    {% if outdoor_darkness_sensor is defined and outdoor_darkness_sensor and
+          outdoor_darkness_sensor is string and outdoor_darkness_sensor | length > 0 %}
+      {{ states(outdoor_darkness_sensor) in ['on', 'off'] }}
+    {% else %}
+      {{ false }}
+    {% endif %}
+
   # Use the verified daytime value for the rest of the automation
-  is_daytime_final: "{{ is_daytime_verified }}"
+  is_daytime_final: >-
+    {% if outdoor_darkness_ok %}
+      {{ is_state(outdoor_darkness_sensor, 'off') }}
+    {% else %}
+      {{ is_daytime_verified }}
+    {% endif %}
   
   # Check if anyone is home (via device trackers)
   someone_home: >-
