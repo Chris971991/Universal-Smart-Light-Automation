@@ -1,7 +1,7 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - v3.12.0
+  name: Universal Smart Presence Lighting Control - v3.13.0
   description: |
-    **Universal Smart Presence Lighting Control v3.12.0**
+    **Universal Smart Presence Lighting Control v3.13.0**
 
     💡 The most comprehensive lighting automation for Home Assistant with intelligent presence detection, adaptive brightness, and circadian color control.
 
@@ -12,7 +12,7 @@ blueprint:
     **⚠️ Don't create helpers manually!** Install the companion **Setup Wizard** for automated setup:
 
     ✅ **5-Minute Setup** - Complete automation in ~5 minutes
-    ✅ **Zero Manual Work** - All 6 helpers created automatically
+    ✅ **Zero Manual Work** - All 7 helpers created automatically
     ✅ **Smart Validation** - Prevents configuration errors
     ✅ **Safe & Isolated** - Package-based helpers won't affect existing setup
 
@@ -50,12 +50,12 @@ blueprint:
 
     ---
 
-    ## 🆕 Latest Update - v3.12.0
+    ## 🆕 Latest Update - v3.13.0
 
     **✨ New Features:**
-    - ✅ Optional **Outdoor Darkness Sensor** — drive "daytime" from a real outdoor light sensor (weather station) instead of sunrise/sunset clock times
-    - ✅ Storm-dark afternoons enable lights early; bright evenings hold them off; gloomy mornings keep them on
-    - ✅ Automatic fail-safe: if the sensor is unavailable, the sunrise/sunset offsets take over seamlessly
+    - ✅ **Outdoor Lux Sensor with per-room sliders** — point every room at your weather station and give each its own "dark below / bright above" thresholds
+    - ✅ Built-in hysteresis via an auto-managed per-room latch helper (Setup Wizard creates it) — storm skies can't flap your lights
+    - ✅ Storm-dark afternoons enable lights early; bright evenings hold them off; automatic fall-back to sunrise/sunset if the sensor dies
 
     📖 **Full changelog:** https://github.com/Chris971991/universal-smart-light-automation/releases
 
@@ -681,12 +681,11 @@ blueprint:
               mode: slider
               step: 5
 
-        outdoor_darkness_sensor:
-          name: Outdoor Darkness Sensor (Weather Station)
+        outdoor_lux_sensor:
+          name: Outdoor Lux Sensor (Weather Station)
           description: >
-            **OPTIONAL - Use real daylight instead of clock times!** Connect a binary sensor
-            that is ON when it's dark outside (e.g. a Threshold helper on your weather
-            station's solar lux sensor).
+            **OPTIONAL - Use real daylight instead of clock times!** Pick your outdoor
+            light sensor (e.g. a weather station's solar lux sensor).
 
 
             **What it does:**
@@ -698,8 +697,8 @@ blueprint:
             • **Bright evening?** Lights hold off until it's genuinely dim
 
 
-            **Recommended setup:** create a Threshold helper on your outdoor lux sensor
-            (e.g. lower 3750, hysteresis 750 = dark below 3000 lx, bright again above 4500 lx).
+            **Per-room rules:** every room can use the same sensor with different
+            thresholds below - a bedroom can wait for deeper dusk than a workspace.
 
 
             **Fail-safe:** if this sensor is unavailable or unknown, the automation silently
@@ -712,7 +711,57 @@ blueprint:
           selector:
             entity:
               domain:
-                - binary_sensor
+                - sensor
+
+        outdoor_dark_below_lux:
+          name: Outdoor Dark Threshold
+          description: >
+            **When is it "dark" outside?** Below this outdoor light level, the room
+            treats it as evening/night - lights are allowed.
+
+
+            **Reference points (clear winter day):**
+
+            • **~300 lux** - sunset
+
+            • **~1,500 lux** - 30-35 min before sunset
+
+            • **~3,000 lux** - about 50 min before sunset (good default)
+
+            • **~8,000 lux** - a full hour before sunset
+
+
+            💡 **Lights coming on too early?** Lower this number. **Too late?** Raise it.
+          default: 3000
+          selector:
+            number:
+              min: 100
+              max: 20000
+              unit_of_measurement: lx
+              mode: slider
+              step: 100
+
+        outdoor_bright_above_lux:
+          name: Outdoor Bright Threshold
+          description: >
+            **When is it definitely "day" again?** Above this outdoor light level, the
+            room treats it as daytime - energy saving resumes (and daytime rules apply).
+
+
+            **Why two numbers?** The gap between this and the Dark Threshold stops a
+            single passing cloud from flicking your lights - once dark, it takes real
+            daylight to flip back.
+
+
+            ⚠️ **Keep this at least a few hundred lux above the Dark Threshold.**
+          default: 4500
+          selector:
+            number:
+              min: 200
+              max: 30000
+              unit_of_measurement: lx
+              mode: slider
+              step: 100
 
     # Section 6: Bedroom Features
     bedroom_features:
@@ -1363,9 +1412,11 @@ variables:
   presence_trackers: !input presence_trackers
   sunrise_offset_minutes: !input sunrise_offset_minutes
   sunset_offset_minutes: !input sunset_offset_minutes
-  outdoor_darkness_sensor_raw: !input outdoor_darkness_sensor
-  outdoor_darkness_sensor: >-
-    {% if outdoor_darkness_sensor_raw is string %}{{ outdoor_darkness_sensor_raw }}{% elif outdoor_darkness_sensor_raw %}{{ outdoor_darkness_sensor_raw[0] }}{% endif %}
+  outdoor_lux_sensor_raw: !input outdoor_lux_sensor
+  outdoor_lux_sensor: >-
+    {% if outdoor_lux_sensor_raw is string %}{{ outdoor_lux_sensor_raw }}{% elif outdoor_lux_sensor_raw %}{{ outdoor_lux_sensor_raw[0] }}{% endif %}
+  outdoor_dark_below_lux: !input outdoor_dark_below_lux
+  outdoor_bright_above_lux: !input outdoor_bright_above_lux
   bed_occupied_helper_raw: !input bed_occupied_helper
   bed_occupied_helper: >-
     {% if bed_occupied_helper_raw is string %}{{ bed_occupied_helper_raw }}{% elif bed_occupied_helper_raw %}{{ bed_occupied_helper_raw[0] }}{% endif %}
@@ -1509,23 +1560,43 @@ variables:
       {{ is_sun_up }}
     {% endif %}
 
-  # v3.12.0: OPTIONAL outdoor darkness sensor (weather station) overrides the
-  # clock window - "daytime" becomes what the sky actually looks like. The
-  # sensor is ON when dark outside. Fail-safe: any state other than on/off
-  # (unavailable, unknown, not configured) falls back to the sun-times window,
-  # so a dead roof sensor can never strand the room in the wrong mode.
-  outdoor_darkness_ok: >-
-    {% if outdoor_darkness_sensor is defined and outdoor_darkness_sensor and
-          outdoor_darkness_sensor is string and outdoor_darkness_sensor | length > 0 %}
-      {{ states(outdoor_darkness_sensor) in ['on', 'off'] }}
+  # v3.13.0: OPTIONAL outdoor lux sensor (weather station) overrides the clock
+  # window - "daytime" becomes what the sky actually looks like, with per-room
+  # dark/bright thresholds. Between the two thresholds a per-room latch helper
+  # (input_boolean.<room>_outdoor_dark, maintained by this automation) provides
+  # hysteresis so a hovering storm sky can never flap the lights; if that helper
+  # is missing, the sun-times window arbitrates the in-between band instead.
+  # Fail-safe: sensor unset/unavailable/non-numeric falls back entirely to the
+  # sunrise/sunset offsets - a dead roof sensor can never strand the room.
+  outdoor_lux_valid: >-
+    {% if outdoor_lux_sensor is defined and outdoor_lux_sensor and
+          outdoor_lux_sensor is string and outdoor_lux_sensor | length > 0 %}
+      {{ states(outdoor_lux_sensor) not in ['unknown', 'unavailable', ''] and
+         states(outdoor_lux_sensor) | float(-1) >= 0 }}
     {% else %}
       {{ false }}
     {% endif %}
+  outdoor_lux: "{{ states(outdoor_lux_sensor) | float(-1) if outdoor_lux_valid else -1 }}"
+  # Bright threshold is clamped to at least dark+200 so inverted sliders can't
+  # destroy the hysteresis band
+  outdoor_bright_eff: >-
+    {{ [outdoor_bright_above_lux | float(4500), (outdoor_dark_below_lux | float(3000)) + 200] | max }}
+  outdoor_dark_helper: >-
+    input_boolean.{{ room_name | lower | regex_replace('[^a-z0-9]+', '_') | regex_replace('^_+|_+$', '') | regex_replace('_+', '_') }}_outdoor_dark
 
   # Use the verified daytime value for the rest of the automation
   is_daytime_final: >-
-    {% if outdoor_darkness_ok %}
-      {{ is_state(outdoor_darkness_sensor, 'off') }}
+    {% if outdoor_lux_valid %}
+      {% if outdoor_lux < outdoor_dark_below_lux | float(3000) %}
+        {{ false }}
+      {% elif outdoor_lux >= outdoor_bright_eff | float(4500) %}
+        {{ true }}
+      {% elif states[outdoor_dark_helper] is not none and
+            states(outdoor_dark_helper) in ['on', 'off'] %}
+        {{ is_state(outdoor_dark_helper, 'off') }}
+      {% else %}
+        {{ is_daytime_verified }}
+      {% endif %}
     {% else %}
       {{ is_daytime_verified }}
     {% endif %}
@@ -2269,7 +2340,36 @@ action:
   # Performance tracking start
   - variables:
       action_start_time: "{{ now().timestamp() }}"
-  
+
+  # v3.13.0: maintain the per-room outdoor-darkness hysteresis latch. Outside
+  # the dark..bright band the latch is snapped to the current side; inside the
+  # band it is left alone (that memory IS the hysteresis). Missing helper or
+  # no lux sensor -> no-op (is_daytime_final degrades gracefully).
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ outdoor_lux_valid and states[outdoor_dark_helper] is not none and
+                 outdoor_lux < outdoor_dark_below_lux | float(3000) and
+                 is_state(outdoor_dark_helper, 'off') }}
+        sequence:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: "{{ outdoor_dark_helper }}"
+            continue_on_error: true
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ outdoor_lux_valid and states[outdoor_dark_helper] is not none and
+                 outdoor_lux >= outdoor_bright_eff | float(4500) and
+                 is_state(outdoor_dark_helper, 'on') }}
+        sequence:
+          - service: input_boolean.turn_off
+            target:
+              entity_id: "{{ outdoor_dark_helper }}"
+            continue_on_error: true
+
+
   # Version update check (only if enabled)
   - choose:
       - conditions:

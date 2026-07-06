@@ -15,7 +15,7 @@ No more manual helper creation. No more copy-paste errors. Just click through a 
 ## 🎯 Features
 
 ### Automated Helper Creation
-- Creates all 6 required helper entities automatically
+- Creates all 7 required helper entities automatically
 - Uses **package-based system** (non-destructive, isolated helpers)
 - Proper naming convention enforced
 - No conflicts with existing entities

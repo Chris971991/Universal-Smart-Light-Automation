@@ -81,6 +81,14 @@ HELPER_DEFINITIONS = {
         "icon": "mdi:brightness-6",
         "max_length": 255,
     },
+    # v2.1.0: hysteresis latch for blueprint v3.13.0's outdoor lux thresholds.
+    # Maintained by the blueprint itself; harmless (unused) when no outdoor
+    # lux sensor is configured on the automation.
+    "outdoor_dark": {
+        "domain": "input_boolean",
+        "name": "{room} Outdoor Dark",
+        "icon": "mdi:weather-sunset-down",
+    },
 }
 
 
