@@ -1,7 +1,7 @@
 blueprint:
-  name: Universal Smart Presence Lighting Control - v3.13.0
+  name: Universal Smart Presence Lighting Control - v3.14.0
   description: |
-    **Universal Smart Presence Lighting Control v3.13.0**
+    **Universal Smart Presence Lighting Control v3.14.0**
 
     💡 The most comprehensive lighting automation for Home Assistant with intelligent presence detection, adaptive brightness, and circadian color control.
 
@@ -50,12 +50,12 @@ blueprint:
 
     ---
 
-    ## 🆕 Latest Update - v3.13.0
+    ## 🆕 Latest Update - v3.14.0
 
     **✨ New Features:**
-    - ✅ **Outdoor Lux Sensor with per-room sliders** — point every room at your weather station and give each its own "dark below / bright above" thresholds
-    - ✅ Built-in hysteresis via an auto-managed per-room latch helper (Setup Wizard creates it) — storm skies can't flap your lights
-    - ✅ Storm-dark afternoons enable lights early; bright evenings hold them off; automatic fall-back to sunrise/sunset if the sensor dies
+    - ✅ **Explicit Daytime Source selector** — choose Sunrise/Sunset only, Outdoor Lux only (holds last state if the sensor dies), or Outdoor Lux with Sunrise/Sunset fallback
+    - ✅ Includes v3.13.0: per-room outdoor lux sliders + auto-managed hysteresis latch (Setup Wizard creates it)
+    - ✅ Storm-dark afternoons enable lights early; bright evenings hold them off
 
     📖 **Full changelog:** https://github.com/Chris971991/universal-smart-light-automation/releases
 
@@ -680,6 +680,36 @@ blueprint:
               unit_of_measurement: min
               mode: slider
               step: 5
+
+        daytime_source:
+          name: Daytime Source
+          description: >
+            **How should "daytime vs dark" be decided?**
+
+
+            • **Sunrise/Sunset only** - clock times with the offsets above; the outdoor
+            sensor is ignored even if one is selected below
+
+            • **Outdoor Lux only** - the weather station decides; if the sensor ever dies,
+            the room HOLDS its last known dark/bright state instead of silently switching
+            to clock times
+
+            • **Outdoor Lux with Sunrise/Sunset fallback** *(recommended)* - the weather
+            station decides; if the sensor dies, the sunrise/sunset offsets take over
+            seamlessly
+
+
+            💡 With no outdoor sensor selected below, every mode behaves as Sunrise/Sunset.
+          default: outdoor_lux_with_sun_fallback
+          selector:
+            select:
+              options:
+                - label: "Sunrise/Sunset only"
+                  value: sun_times
+                - label: "Outdoor Lux only (hold last state if sensor dies)"
+                  value: outdoor_lux
+                - label: "Outdoor Lux with Sunrise/Sunset fallback"
+                  value: outdoor_lux_with_sun_fallback
 
         outdoor_lux_sensor:
           name: Outdoor Lux Sensor (Weather Station)
@@ -1412,6 +1442,7 @@ variables:
   presence_trackers: !input presence_trackers
   sunrise_offset_minutes: !input sunrise_offset_minutes
   sunset_offset_minutes: !input sunset_offset_minutes
+  daytime_source: !input daytime_source
   outdoor_lux_sensor_raw: !input outdoor_lux_sensor
   outdoor_lux_sensor: >-
     {% if outdoor_lux_sensor_raw is string %}{{ outdoor_lux_sensor_raw }}{% elif outdoor_lux_sensor_raw %}{{ outdoor_lux_sensor_raw[0] }}{% endif %}
@@ -1584,9 +1615,16 @@ variables:
   outdoor_dark_helper: >-
     input_boolean.{{ room_name | lower | regex_replace('[^a-z0-9]+', '_') | regex_replace('^_+|_+$', '') | regex_replace('_+', '_') }}_outdoor_dark
 
-  # Use the verified daytime value for the rest of the automation
+  # Use the verified daytime value for the rest of the automation.
+  # v3.14.0: explicit three-way source selector:
+  #   sun_times                     -> clock window, lux ignored entirely
+  #   outdoor_lux                   -> lux decides; DEAD SENSOR holds the latch's
+  #                                    last known state (never silently swaps to
+  #                                    clock rules); sun only if no latch exists
+  #   outdoor_lux_with_sun_fallback -> lux decides; dead sensor hands over to the
+  #                                    sunrise/sunset offsets seamlessly (default)
   is_daytime_final: >-
-    {% if outdoor_lux_valid %}
+    {% if daytime_source != 'sun_times' and outdoor_lux_valid %}
       {% if outdoor_lux < outdoor_dark_below_lux | float(3000) %}
         {{ false }}
       {% elif outdoor_lux >= outdoor_bright_eff | float(4500) %}
@@ -1597,6 +1635,10 @@ variables:
       {% else %}
         {{ is_daytime_verified }}
       {% endif %}
+    {% elif daytime_source == 'outdoor_lux' and
+          states[outdoor_dark_helper] is not none and
+          states(outdoor_dark_helper) in ['on', 'off'] %}
+      {{ is_state(outdoor_dark_helper, 'off') }}
     {% else %}
       {{ is_daytime_verified }}
     {% endif %}
